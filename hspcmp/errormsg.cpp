@@ -117,9 +117,10 @@ static char *err[]={
 };
 #endif
 
-char *cg_geterror( CGERROR error )
+char *cg_geterror( CGERROR_CODE code )
 {
-	if ((error<0)||(error>=CGERROR_MAX)) return err[0];
+	int error = (int)code;
+	if ((error<0)||(error>=(int)CGERROR_CODE::MAX)) return err[0];
 	return err[error];
 }
 

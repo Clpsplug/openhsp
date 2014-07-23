@@ -2417,7 +2417,7 @@ int CToken::GenerateCodeMain( CMemBuf *buf )
 		if ( errend ) throw CGERROR_FATAL;
 	}
 	catch ( CGERROR code ) {
-		return (int)code;
+		return (int)code.code;
 	}
 
 	return 0;
@@ -2949,7 +2949,7 @@ int CToken::GenerateCode( CMemBuf *srcbuf, char *oname, int mode )
 		char tmp[512];
 		CStrNote note;
 		CMemBuf srctmp;
-		Mesf( "%s(%d) : error %d : %s (%ds–Ú)", cg_orgfile, cg_orgline, res, cg_geterror((CGERROR)res), cg_orgline );
+		Mesf( "%s(%d) : error %d : %s (%ds–Ú)", cg_orgfile, cg_orgline, res, cg_geterror((CGERROR_CODE)res), cg_orgline );
 		if ( cg_errline > 0 ) {
 			note.Select( bakbuf.GetBuffer() );
 			note.GetLine( tmp, cg_errline-1, 510 );

@@ -20,7 +20,9 @@
 //		ˆÚA—p‚Ìƒ‰ƒxƒ‹
 //
 #define JPN			// IME use flag
+#if !defined(NOJPNMSG)
 #define JPNMSG		// japanese message flag
+#endif
 
 //
 //	Debug mode functions
