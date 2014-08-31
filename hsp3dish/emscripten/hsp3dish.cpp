@@ -54,6 +54,8 @@ static int hsp_limit_step_per_frame;
 static int hsp_sscnt, hsp_ssx, hsp_ssy;
 #endif
 
+static int keys[1000];
+
 /*----------------------------------------------------------*/
 void handleEvent() {
 	SDL_Event event;
@@ -93,8 +95,30 @@ void handleEvent() {
 				hgio_touch( m->x, m->y, 0 );
 				break;
 			}
+		case SDL_KEYDOWN:
+			if (!keys[event.key.keysym.sym]) {
+				keys[event.key.keysym.sym] = 1;
+				printf("key down: sym %d scancode %d\n", event.key.keysym.sym, event.key.keysym.scancode);
+			}
+			break;
+		case SDL_KEYUP:
+			if (keys[event.key.keysym.sym]) {
+				keys[event.key.keysym.sym] = 0;
+				printf("key up: sym %d scancode %d\n", event.key.keysym.sym, event.key.keysym.scancode);
+			}
+			break;
 		}
+		//		switch (event.key.keysym.sym) {
+		//		case SDLK_RIGHT: x++; break;
+		//		case SDLK_LEFT: x--; break;
+		//		case SDLK_UP: y--; break;
+		//		case SDLK_DOWN: y++; break;
 	}
+}
+
+bool get_key_state(int sym)
+{
+	return keys[sym];
 }
 
 static void hsp3dish_initwindow( engine* engine, int sx, int sy, char *windowtitle )
