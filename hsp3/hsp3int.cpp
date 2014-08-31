@@ -513,6 +513,130 @@ static void var_set_str_len( PVal *pval, APTR aptr, char *str, int len )
 }
 
 
+class Async_bload : public Async {
+	int state;
+	char fname[HSP_MAX_PATH];
+	int ofs;
+	int size;
+	void *ptr;
+
+public:
+	Async_bload(const char* fname,int ofs, int size, void *ptr)
+		: state(XHR_INIT), ofs(ofs), size(size), ptr(ptr) {
+		strcpy(this->fname, fname);
+
+		if ( dpm_filebase( this->fname ) == -1 ) {
+			xhr_load_file(fname, &state);
+			return;
+		}
+		code_event( HSPEVENT_FREAD, ofs, size, ptr );
+		state = XHR_DONE;
+		return;
+	}
+
+	virtual bool isRunning() {
+		switch (state) {
+		case XHR_INIT:
+			throw HSPERR_UNKNOWN_CODE;
+		case XHR_WAITING:
+			return true;
+		case XHR_DONE:
+		case XHR_ERROR:
+			code_event( HSPEVENT_FREAD, ofs, size, ptr );
+			return false;
+		default:
+			throw HSPERR_UNKNOWN_CODE;
+		}
+
+	}
+};
+
+class Async_noteload : public Async {
+	int state;
+	char fname[HSP_MAX_PATH];
+	int limit;
+
+public:
+	Async_noteload(const char* fname, int limit)
+		: state(XHR_INIT), limit(limit) {
+		int size;
+		char *ptr;
+		char *pdat;
+
+		strcpy(this->fname, fname);
+
+		if ( dpm_filebase( this->fname ) == -1 ) {
+			xhr_load_file(fname, &state);
+		}
+
+		code_event( HSPEVENT_FNAME, 0, 0, this->fname );
+		code_event( HSPEVENT_FEXIST, 0, 0, NULL );
+		size = ctx->strsize;
+		if ( size < 0 ) throw HSPERR_FILE_IO;
+		if ( limit>=0 ) if ( size >= limit ) { ctx->strsize = size = limit; }
+
+		pdat = note_update();
+		HspVarCoreAllocBlock( ctx->note_pval, (PDAT *)pdat, size+1 );
+		ptr = (char *)note_update();
+		code_event( HSPEVENT_FREAD, 0, size, ptr );
+		ptr[size] = 0;
+
+		state = XHR_DONE;
+		return;
+	}
+
+	virtual bool isRunning() {
+		int size;
+		char *ptr;
+		char *pdat;
+		switch (state) {
+		case XHR_INIT:
+			throw HSPERR_UNKNOWN_CODE;
+		case XHR_WAITING:
+			return true;
+		case XHR_DONE:
+		case XHR_ERROR:
+
+			code_event( HSPEVENT_FNAME, 0, 0, this->fname );
+			code_event( HSPEVENT_FEXIST, 0, 0, NULL );
+			size = ctx->strsize;
+			if ( size < 0 ) throw HSPERR_FILE_IO;
+			if ( limit>=0 ) if ( size >= limit ) { ctx->strsize = size = limit; }
+
+			pdat = note_update();
+			HspVarCoreAllocBlock( ctx->note_pval, (PDAT *)pdat, size+1 );
+			ptr = (char *)note_update();
+			code_event( HSPEVENT_FREAD, 0, size, ptr );
+			ptr[size] = 0;
+			return false;
+		default:
+			throw HSPERR_UNKNOWN_CODE;
+		}
+
+	}
+};
+
+class Async_bsave : public Async {
+	enum State {INIT = 0, WAITING, DONE, ERROR};
+	int state;
+	char fname[HSP_MAX_PATH];
+	int ofs;
+	int size;
+	void *ptr;
+public:
+public:
+	Async_bsave(const char *fname,int ofs, int size, void *ptr)
+		: ofs(ofs), size(size), ptr(ptr) {
+		strcpy(this->fname, fname);
+
+		state = XHR_DONE;
+		return;
+	}
+
+	virtual bool isRunning() {
+		return false;
+	}
+};
 
 static int cmdfunc_intcmd( int cmd )
 {
@@ -604,20 +728,32 @@ static int cmdfunc_intcmd( int cmd )
 	case 0x17:								// bsave
 		{
 		PVal *pval;
+		char *fname;
 		char *ptr;
 		int size;
 		int tmpsize;
-		code_event( HSPEVENT_FNAME, 0, 0, code_gets() );
+		fname = code_gets();
+		code_event( HSPEVENT_FNAME, 0, 0, fname );
 		ptr = code_getvptr( &pval, &size );
 		p1 = code_getdi( -1 );
 		p2 = code_getdi( -1 );
 		if (( p1 < 0 )||( p1 > size )) p1 = size;
+#ifdef HSPEMSCRIPTEN
+		if ( cmd == 0x16 ) {
+			tmpsize = p2;if ( tmpsize<0 ) tmpsize = 0;
+			push_async(new Async_bload( fname, tmpsize, p1, ptr ));
+		} else {
+			code_event( HSPEVENT_FWRITE, p2, p1, ptr );
+			//push_async(new Async_bsave( fname, p2, p1, ptr ));
+		}
+#else
 		if ( cmd == 0x16 ) {
 			tmpsize = p2;if ( tmpsize<0 ) tmpsize = 0;
 			code_event( HSPEVENT_FREAD, tmpsize, p1, ptr );
 		} else {
 			code_event( HSPEVENT_FWRITE, p2, p1, ptr );
 		}
+#endif
 		break;
 		}
 	case 0x18:								// bcopy
@@ -816,11 +952,17 @@ static int cmdfunc_intcmd( int cmd )
 	case 0x25:								// noteload
 		{
 		int size;
+		char *fname;
 		char *ptr;
 		char *pdat;
 
-		code_event( HSPEVENT_FNAME, 0, 0, code_gets() );
+		fname = code_gets();
 		p1 = code_getdi( -1 );
+
+#ifdef HSPEMSCRIPTEN
+		push_async(new Async_noteload( fname, p1 ));
+#else
+		code_event( HSPEVENT_FNAME, 0, 0, fname );
 		code_event( HSPEVENT_FEXIST, 0, 0, NULL );
 		size = ctx->strsize;
 		if ( size < 0 ) throw HSPERR_FILE_IO;
@@ -831,6 +973,7 @@ static int cmdfunc_intcmd( int cmd )
 		ptr = (char *)note_update();
 		code_event( HSPEVENT_FREAD, 0, size, ptr );
 		ptr[size] = 0;
+#endif
 		break;
 		}
 	case 0x26:								// notesave

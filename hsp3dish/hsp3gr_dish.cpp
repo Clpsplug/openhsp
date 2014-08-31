@@ -468,6 +468,47 @@ static void code_setivlen( PVal *pval, int len )
 */
 /*------------------------------------------------------------*/
 
+#ifdef HSPEMSCRIPTEN
+class Async_celload : public Async {
+	int state;
+	int id;
+	char fname[HSP_MAX_PATH];
+
+public:
+	Async_celload(int id, const char* fname)
+		: state(XHR_INIT), id(id) {
+		strcpy(this->fname, fname);
+
+		if ( dpm_filebase( this->fname ) == -1 ) {
+			xhr_load_file(this->fname, &state);
+			return;
+		}
+
+		wnd->MakeBmscrFromResource( id, this->fname );
+		state = XHR_DONE;
+		return;
+	}
+
+	virtual bool isRunning() {
+		switch (state) {
+		case XHR_INIT:
+			throw HSPERR_UNKNOWN_CODE;
+		case XHR_WAITING:
+			return true;
+		case XHR_DONE:
+		case XHR_ERROR:
+			wnd->MakeBmscrFromResource( id, fname );
+			ctx->stat = id;
+			return false;
+		default:
+			throw HSPERR_UNKNOWN_CODE;
+		}
+
+	}
+};
+#endif
+
+
 static void cmdfunc_dialog( void )
 {
 	// dialog
@@ -1037,11 +1078,15 @@ static int cmdfunc_extcmd( int cmd )
 		if ( p1 < 0 ) p1 = wnd->GetEmptyBufferId();
 		//Alertf( "celload[%s],%d,%d\n", fname, p1, p2 );
 
+#ifdef HSPEMSCRIPTEN
+		push_async(new Async_celload( p1, fname ));
+#else
 		wnd->MakeBmscrFromResource( p1, fname );
 		//i = wnd->Picload( p1, fname, 0 );
 		//if ( i ) throw HSPERR_PICTURE_MISSING;
 
 		ctx->stat = p1;
+#endif
 		break;
 		}
 	case 0x3d:								// celdiv

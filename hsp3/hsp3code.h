@@ -10,6 +10,20 @@
 
 extern PVal *mpval;
 
+class Async {
+public:
+	virtual ~Async() {}
+	virtual bool isRunning() = 0;
+};
+
+#define XHR_INIT 0
+#define XHR_WAITING 1
+#define XHR_DONE 2
+#define XHR_ERROR 3
+
+void xhr_load_file(const char *fname, int *state);
+
+
 void code_init( void );
 void code_bye( void );
 void code_termfunc( void );
@@ -106,6 +120,8 @@ void code_dbgtrace( void );
 
 void code_delstruct( PVal *in_pval, APTR in_aptr );
 void code_delstruct_all( PVal *pval );
+
+void push_async(Async* async);
 
 /*
 	rev 43

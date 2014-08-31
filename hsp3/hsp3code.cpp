@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <queue>
 #include "hspwnd.h"
 #include "supio.h"
 #include "dpmread.h"
@@ -17,6 +18,10 @@
 #include "hsp3debug.h"
 #include "hsp3config.h"
 #include "hsp3int.h"
+
+#ifdef HSPEMSCRIPTEN
+#include <emscripten.h>
+#endif
 
 #define strp(dsptr) &hspctx->mem_mds[dsptr]
 
@@ -61,6 +66,14 @@ static	int funcres;							// ä÷êîÇÃñﬂÇËílå^
 		interface
 */
 /*------------------------------------------------------------*/
+
+static std::queue<Async*> async_queue;
+
+
+void push_async(Async* async)
+{
+	async_queue.push(async);
+}
 
 
 static int getU32(unsigned short *mcs) {
@@ -2862,6 +2875,24 @@ rerun:
 	try {
 #endif
 		{
+
+			while ( !async_queue.empty() ) {
+				Async *async = async_queue.front();
+				if ( async->isRunning() ) {
+					//printf( "# Async task - WAIT\n" );
+					break;
+				} else {
+					//printf( "# Async task - DONE\n" );
+					delete async;
+					async_queue.pop();
+				}
+			}
+			if ( !async_queue.empty() ) {
+				//printf( "# Wait for async tasks\n" );
+				hspctx->runmode = RUNMODE_WAIT;
+				return RUNMODE_WAIT;
+			}
+
 			//Alertf( "#%d,%d line%d",type,val,code_getdebug_line() );
 			//Alertf( "#%d,%d",type,val );
 			//printf( "#%d,%d  line%d\n",type,val,code_getdebug_line() );
@@ -3642,4 +3673,40 @@ void code_dbgtrace( void )
 
 #endif
 
+void xhr_load_file(const char *fname, int *state) {
+	EM_ASM_({
+		var fname = Pointer_stringify($0);
+		console.log("XHR LOAD", $0, fname, $1);
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', fname, true);
+		xhr.responseType = 'arraybuffer';
+		xhr.onload = function(event) {
+			console.error("XHR onload", event, xhr);
+			if (xhr.readyState === 4) {
+				if (xhr.status === 200) {
+					try {
+						if (fname.lastIndexOf("/") > 0) {
+							FS.mkdir(fname.substr(0, fname.lastIndexOf("/")));
+						}
+					} catch (e) {
+					}
+					var data = new Uint8Array(xhr.response);
+					var stream = FS.open(fname, 'w');
+					FS.write(stream, data, 0, data.length, 0);
+					FS.close(stream);
+					console.log(FS.stat(fname));
+					Module.setValue($1, 2, "i32*");
+				} else {
+					Module.setValue($1, 3, "i32*");
+				}
+			}
+		};
+		xhr.onerror = function (e) {
+			console.error("XHR onerror", e, xhr.statusText);
+			Module.setValue($1, 3, "i32*");
+		};
 
+		xhr.send(null);
+		Module.setValue($1, 1, "i32*");
+		}, fname, state);
+}
