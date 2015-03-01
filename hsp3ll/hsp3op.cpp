@@ -383,6 +383,35 @@ std::ostream& operator<< (std::ostream &out, const Op &op) {
 		out << "[?]";
 		break;
 	}
+	switch (op.flag) {
+	case HSPVAR_FLAG_NONE:
+		out << "[NONE]";
+		break;
+	case HSPVAR_FLAG_LABEL:
+		out << "[LABEL]";
+		break;
+	case HSPVAR_FLAG_STR:
+		out << "[STR]";
+		break;
+	case HSPVAR_FLAG_DOUBLE:
+		out << "[DOUBLE]";
+		break;
+	case HSPVAR_FLAG_INT:
+		out << "[INT]";
+		break;
+	case HSPVAR_FLAG_STRUCT:
+		out << "[STRUCT]";
+		break;
+	case HSPVAR_FLAG_COMSTRUCT:
+		out << "[COMSTRUCT]";
+		break;
+	case HSPVAR_FLAG_MAX:
+		out << "[?]";
+		break;
+	default:
+		out << "[#" << op.flag << "]";
+		break;
+	}
 
 	return out;
 }

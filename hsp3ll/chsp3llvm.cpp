@@ -376,105 +376,6 @@ static void MarkCompile(Op *op, COMPILE_TYPE comp)
 	}
 }
 
-static void CheckType(CHsp3Op *hsp, Task *task,
-	const std::map<VarId, int>& varTypes)
-{
-	for (auto op : task->block->operations) {
-		op->compile = DEFAULT;
-		op->flag = HSPVAR_FLAG_MAX;
-	}
-
-	for (auto op : task->block->operations) {
-		switch (op->GetOpCode()) {
-		case PUSH_VAR_OP:
-		{
-			const VarId &varId = ((PushVarOp*)op)->GetVarId();
-			op->flag = varTypes.find(varId)->second;
-			break;
-		}
-		case PUSH_VAR_PTR_OP:
-		{
-			const VarId &varId = ((PushVarPtrOp*)op)->GetVarId();
-			op->flag = varTypes.find(varId)->second;
-			break;
-		}
-		case PUSH_DNUM_OP:
-			op->flag = HSPVAR_FLAG_DOUBLE;
-			break;
-		case PUSH_INUM_OP:
-			op->flag = HSPVAR_FLAG_INT;
-			break;
-		case PUSH_LABEL_OP:
-			op->flag = HSPVAR_FLAG_LABEL;
-			break;
-		case PUSH_STR_OP:
-			op->flag = HSPVAR_FLAG_STR;
-			break;
-		case PUSH_FUNC_END_OP:
-		case PUSH_FUNC_PARAM_PTR_OP:
-			break;
-		case PUSH_FUNC_PARAM_OP:
-		{
-			PushFuncPrmOp *prmop = (PushFuncPrmOp*)op;
-			const VarId &varId = prmop->GetVarId();
-			const STRUCTPRM *st = hsp->GetMInfo(prmop->GetVarNo());
-			switch (st->mptype) {
-			case MPTYPE_LOCALVAR:
-				break;
-			case MPTYPE_VAR:
-			case MPTYPE_ARRAYVAR:
-			case MPTYPE_SINGLEVAR:
-				op->flag = varTypes.find(varId)->second;
-				break;
-			case MPTYPE_DNUM:
-				op->flag = HSPVAR_FLAG_DOUBLE;
-				break;
-			case MPTYPE_INUM:
-				op->flag = HSPVAR_FLAG_INT;
-				break;
-			}
-			break;
-		}
-		case PUSH_CMD_OP:
-		{
-			PushCmdOp *pcop = (PushCmdOp*)op;
-			int retType = GetFuncTypeRet(pcop->GetCmdType(),
-				pcop->GetCmdVal(),
-				pcop->GetCmdPNum());
-			op->flag = retType;
-			break;
-		}
-		case CALC_OP:
-		{
-			CalcOp *calc = (CalcOp*)op;
-			int tflag = GetOpTypeRet(calc->GetCalcOp(),
-				op->operands[1]->flag,
-				op->operands[0]->flag);
-			op->flag = tflag;
-		}
-			break;
-
-		case VAR_INC_OP:
-		case VAR_DEC_OP:
-			break;
-
-		case VAR_CALC_OP:
-			break;
-		case VAR_SET_OP:
-			break;
-		case COMPARE_OP:
-			break;
-		case CMD_OP:
-			break;
-		case MODCMD_OP:
-			break;
-		case TASK_SWITCH_OP:
-			break;
-		default:
-			break;
-		}
-	}
-}
 
 //TODO –¾Ž¦“I‚É•Ï”‚ÌŒ^î•ñ‚ð“n‚· -> CheckType
 static BasicBlock *CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, BasicBlock *retBB, Task *task, Op *op)
@@ -1428,7 +1329,7 @@ static void CompileTask(CHsp3Op *hsp, Task *task, Function *func, BasicBlock *re
 		}
 	}
 
-	CheckType(hsp, task, varTypes);
+	hsp->UpdateOpType(task->block, varTypes);
 
 	string buf(GetTaskFuncName(task));
 
@@ -1573,7 +1474,7 @@ static void CompileTaskGeneral(CHsp3Op *hsp, Task *task, Function *func, BasicBl
 		varTypes[var] = HSPVAR_FLAG_MAX;
 	}
 
-	CheckType(hsp, task, varTypes);
+	hsp->UpdateOpType(task->block, varTypes);
 
 	auto curBB = BasicBlock::Create(Context,
 		task->block->name + "_entry",
@@ -1864,12 +1765,17 @@ int MakeSource(CHsp3Op *hsp, int option, void *ref)
 	//
 	if (printDebugDump) {
 		std::ofstream out("dump2.txt");
+		std::map<VarId, int> varTypes;
 
 		for (int i = 0; i < sLabMax + 1; i++) {
 			if (!__Task[i])
 				continue;
 
 			Task &task = *__Task[i];
+			for (auto v : task.block->usedVariables) {
+				varTypes[v] = HSPVAR_FLAG_MAX;
+			}
+			hsp->UpdateOpType(task.block, varTypes);
 			out << "#" << task.block->name << std::endl;
 			PrettyPrint(out, task.block);
 		}
