@@ -7,20 +7,24 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/PassManager.h"
 
+#include "../hsp3/hspvar_core.h"
+
 class CHsp3Op;
 class VarId;
+struct HSPCTX;
 
 class CompileContext {
 public:
 	CHsp3Op* hsp;
-	llvm::LLVMContext context;
+	llvm::LLVMContext& context;
 	llvm::IRBuilder<> builder;
-	std::unique_ptr<llvm::Module> module;
+	llvm::Module* module;
 	std::unique_ptr<llvm::ExecutionEngine> EE;
 	std::unique_ptr<llvm::FunctionPassManager> FPM;
 	//legacy::PassManager *Passes;
@@ -30,8 +34,7 @@ public:
 	explicit CompileContext(CHsp3Op* hsp);
 	~CompileContext();
 
-	void LoadLLRuntime();
-	void InitVariables();
+	void ResetModule(HSPCTX **hspctx, PVal **hspVars, void *dsBasePtr);
 	void CreateEE();
 
 	llvm::StructType* GetPValType();

@@ -91,13 +91,12 @@ public:
 	{
 	}
 
-	void setup(PVal **Var__HspVars);
+	void setup();
 
 	template<typename T>
 	Function* createFunction(T gen)
 	{
-		cctx->LoadLLRuntime();
-
+		cctx->ResetModule(&sHspctx, Var__HspVars, &sDsBasePtr);
 		Function* func = cast<Function>(cctx->module->getOrInsertFunction(GetTaskFuncName(this),
 			Type::getVoidTy(cctx->context),
 			(Type *)0));
@@ -1672,16 +1671,15 @@ static void TraceTaskProc()
 		if (verifyModule(*cctx->module, &raw_string_ostream(ErrMsg))) {
 			Alert((char*)ErrMsg.c_str());
 		}
+		cctx->FPM->run(*task.func);
 
 		if (task.func) {
-			cctx->FPM->run(*task.func);
 			task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.func);
 		}
 	}
 	else if (change) {
 		task.numChange++;
 		task.numCurCall = 1;
-		cctx->FPM->run(*task.func);
 		task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.func);
 	}
 	else {
@@ -1689,8 +1687,6 @@ static void TraceTaskProc()
 	}
 	if (task.numCurCall == 10) {
 		auto& builder = cctx->builder;
-
-		cctx->LoadLLRuntime();
 
 		task.spFunc = task.createFunction([&](Function *func, BasicBlock *funcRet) {
 			CompileTask(hsp3, &task, func, funcRet);
@@ -1706,7 +1702,7 @@ static void TraceTaskProc()
 			Alert((char*)ErrMsg.c_str());
 		}
 
-		//TheFPM->run(*task.spFunc);
+		cctx->FPM->run(*task.spFunc);
 		//Passes->run(*cctx->module);
 
 		if (true) {
@@ -1715,7 +1711,6 @@ static void TraceTaskProc()
 		}
 
 		if (task.spFunc) {
-			cctx->FPM->run(*task.spFunc);
 			task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.spFunc);
 		}
 	}
@@ -1790,16 +1785,13 @@ void __HspSetup(Hsp3r *hsp3r)
 		else {
 			Task &task = *__Task[i];
 			//__Task[i] = task;
-			task.setup(Var__HspVars);
-
-			GlobalVariable *ctx = (GlobalVariable*)task.cctx->module->getGlobalVariable("hspctx");
-			task.cctx->EE->updateGlobalMapping(ctx, (void*)&sHspctx);
-
-			task.funcPtr = (CHSP3_TASK)task.cctx->EE->getPointerToFunction(task.func);
-			__HspTaskFunc[i] = TraceTaskProc;//task.funcPtr;
+			task.setup();
 
 			auto fname = (format("dump_%1$x.ll") % i).str();
 			DumpModule(fname.c_str(), *task.cctx->module);
+
+			task.funcPtr = (CHSP3_TASK)task.cctx->EE->getPointerToFunction(task.func);
+			__HspTaskFunc[i] = TraceTaskProc;//task.funcPtr;
 		}
 	}
 }
@@ -1818,15 +1810,9 @@ void __HspEntry(void)
 	t();
 }
 
-void Task::setup(PVal **Var__HspVars)
+void Task::setup()
 {
 	cctx = new CompileContext(hsp3);
-	cctx->CreateEE();
-
-	for (int i = 0; i < sMaxVar; i++) {
-		cctx->EE->updateGlobalMapping(cctx->variables[i], Var__HspVars[i]);
-	}
-	cctx->EE->updateGlobalMapping(cctx->dsBase, (void*)&sDsBasePtr);
 
 	func = createFunction([&](Function *func, BasicBlock *funcRet) {
 		CompileTaskGeneral(hsp3, this, func, funcRet);
@@ -1836,6 +1822,7 @@ void Task::setup(PVal **Var__HspVars)
 	if (verifyModule(*cctx->module, &raw_string_ostream(ErrMsg))) {
 		Alert((char*)ErrMsg.c_str());
 	}
+	cctx->FPM->run(*func);
 }
 
 int MakeSource(CHsp3Op *hsp, int option, void *ref)

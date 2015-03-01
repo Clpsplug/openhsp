@@ -34,6 +34,7 @@
 
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 #include "supio.h"
 #include "chsp3op.h"
@@ -55,6 +56,8 @@ extern int GetCurTaskId();
 extern void HspVarCoreArray2(PVal *pval, int offset);
 void* HspLazyFunctionCreator(const string &name);
 
+static std::unique_ptr<Module> rtModule;
+
 bool DumpModule(const char *name, const Module &M)
 {
 	string errorInfo;
@@ -68,23 +71,43 @@ bool DumpModule(const char *name, const Module &M)
 	return true;
 }
 
-CompileContext::CompileContext(CHsp3Op* hsp)
-	: hsp(hsp), builder(context)
+void LoadLLRuntime()
 {
-	static int id = 0;
-	module.reset(new Module("test" + std::to_string(id++), context));
+#ifdef HSPWIN
+	HRSRC hrc;
+	HGLOBAL hgb;
+	LPVOID p;
+	LLVMContext& context = getGlobalContext();
 
-	LoadLLRuntime();
-	InitVariables();
+	hrc = FindResource(NULL, MAKEINTRESOURCEA(256), "TEXT");
+	hgb = LoadResource(NULL, hrc);
+	p = LockResource(hgb);
+
+	SMDiagnostic err;
+	rtModule.reset(ParseAssemblyString((char*)p, nullptr, err, context));
+	FreeResource(hrc);
+#else
+#error
+#endif
 }
 
+
+CompileContext::CompileContext(CHsp3Op* hsp)
+	: hsp(hsp), context(getGlobalContext()), builder(context), module(nullptr)
+{
+	if (!rtModule)
+		LoadLLRuntime();
+}
 
 CompileContext::~CompileContext()
 {
 }
 
-void CompileContext::InitVariables()
+void CompileContext::ResetModule(HSPCTX **hspctx, PVal **hspVars, void *dsBasePtr)
 {
+	EE.reset();
+	module = CloneModule(rtModule.get());
+
 	Type *pvalType = GetPValType();
 	int maxvar = hsp->GetHSPHed()->max_val;
 
@@ -95,6 +118,16 @@ void CompileContext::InitVariables()
 	}
 
 	dsBase = (GlobalVariable*)module->getOrInsertGlobal("ds_base", Type::getInt32Ty(context));
+
+	CreateEE();
+
+	for (int i = 0; i < maxvar; i++) {
+		EE->updateGlobalMapping(variables[i], hspVars[i]);
+	}
+	EE->updateGlobalMapping(dsBase, dsBasePtr);
+
+	GlobalVariable *ctx = (GlobalVariable*)module->getGlobalVariable("hspctx");
+	EE->updateGlobalMapping(ctx, (void*)hspctx);
 }
 
 Value* CompileContext::GetValue(BasicBlock* bb, const VarId& id, char *opt)
@@ -190,25 +223,6 @@ Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int
 
 	builder.SetInsertPoint(bblock);
 	return builder.CreateCall(f, makeArrayRef(args));
-}
-
-void CompileContext::LoadLLRuntime()
-{
-#ifdef HSPWIN
-	HRSRC hrc;
-	HGLOBAL hgb;
-	LPVOID p;
-
-	hrc = FindResource(NULL, MAKEINTRESOURCEA(256), "TEXT");
-	hgb = LoadResource(NULL, hrc);
-	p = LockResource(hgb);
-
-	SMDiagnostic err;
-	ParseAssemblyString((char*)p, module.get(), err, context);
-	FreeResource(hrc);
-#else
-#error
-#endif
 }
 
 Value* CompileContext::CreateCalcI(int code, Value *a, Value *b)
@@ -330,7 +344,7 @@ void CompileContext::CreateEE()
 		Alert((char*)errMsg.c_str());
 	}
 
-	EE.reset(EngineBuilder(module.get())
+	EE.reset(EngineBuilder(module)
 		.setEngineKind(EngineKind::JIT)
 		.setUseMCJIT(true)
 		.setOptLevel(CodeGenOpt::Aggressive)
@@ -343,7 +357,7 @@ void CompileContext::CreateEE()
 		Function *KnownFunction = Function::Create(\
 		TypeBuilder<t, false>::get(context),\
 			GlobalValue::ExternalLinkage, #func,\
-			module.get());\
+			module);\
 		EE->addGlobalMapping(KnownFunction, (void*)(intptr_t)func);\
 	} while (false);
 
@@ -423,7 +437,7 @@ void CompileContext::CreateEE()
 	//createStandardLTOPasses( Passes, false, true, true );
 #endif
 
-	FPM.reset(new FunctionPassManager(module.get()));
+	FPM.reset(new FunctionPassManager(module));
 
 	// Set up the optimizer pipeline.  Start with registering info about how the
 	// target lays out data structures.
