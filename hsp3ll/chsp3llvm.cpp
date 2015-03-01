@@ -48,6 +48,7 @@ using std::string;
 using boost::format;
 
 extern CHsp3Op *hsp3;
+extern bool printDebugDump;
 
 class Task;
 
@@ -1693,7 +1694,7 @@ static void TraceTaskProc()
 			CompileTask(hsp3, &task, func, funcRet);
 		});
 
-		if (true) {
+		if (printDebugDump) {
 			auto fname = (format("dump_jit_%1$x.ll") % cur).str();
 			DumpModule(fname.c_str(), *cctx->module);
 		}
@@ -1707,7 +1708,7 @@ static void TraceTaskProc()
 		cctx->Passes->run(*cctx->module);
 		//Passes->run(*cctx->module);
 
-		if (true) {
+		if (printDebugDump) {
 			auto fname = (format("dump_jit_opt_%1$x.ll") % cur).str();
 			DumpModule(fname.c_str(), *cctx->module);
 		}
@@ -1779,7 +1780,9 @@ void __HspSetup(Hsp3r *hsp3r)
 		__HspTaskFunc = new CHSP3_TASK[sLabMax];
 	}
 
-	Alert("HspSetup");
+	if (printDebugDump) {
+		Alert("HspSetup");
+	}
 	for (int i = 0; i < sLabMax + 1; i++) {
 		if (!__Task[i]) {
 			__HspTaskFunc[i] = NULL;
@@ -1789,8 +1792,10 @@ void __HspSetup(Hsp3r *hsp3r)
 			//__Task[i] = task;
 			task.setup();
 
-			auto fname = (format("dump_%1$x.ll") % i).str();
-			DumpModule(fname.c_str(), *task.cctx->module);
+			if (printDebugDump) {
+				auto fname = (format("dump_%1$x.ll") % i).str();
+				DumpModule(fname.c_str(), *task.cctx->module);
+			}
 
 			task.funcPtr = (CHSP3_TASK)task.cctx->EE->getPointerToFunction(task.func);
 			__HspTaskFunc[i] = TraceTaskProc;//task.funcPtr;
@@ -1803,9 +1808,6 @@ void __HspEntry(void)
 	sHspctx = &sHsp3r->hspctx;
 
 	Task &task = *__Task[sLabMax];
-
-	//	GlobalVariable *ctx = (GlobalVariable*)task.cctx->module->getGlobalVariable("hspctx");
-	//	task.EE->updateGlobalMapping(ctx, (void*)&sHspctx);
 
 	void *fp = task.cctx->EE->getPointerToFunction(task.func);
 	CHSP3_TASK t = (CHSP3_TASK)fp;
@@ -1860,9 +1862,7 @@ int MakeSource(CHsp3Op *hsp, int option, void *ref)
 
 	// Œ‹‰Ê‚ðƒ_ƒ“ƒv
 	//
-	//DumpModule("dump.ll", *cctx->module);
-
-	{
+	if (printDebugDump) {
 		std::ofstream out("dump2.txt");
 
 		for (int i = 0; i < sLabMax + 1; i++) {
