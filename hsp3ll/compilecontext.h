@@ -27,7 +27,7 @@ public:
 	llvm::Module* module;
 	std::unique_ptr<llvm::ExecutionEngine> EE;
 	std::unique_ptr<llvm::FunctionPassManager> FPM;
-	//legacy::PassManager *Passes;
+	std::unique_ptr<llvm::PassManager> Passes;
 	llvm::GlobalVariable **variables;
 	llvm::GlobalVariable *dsBase;
 

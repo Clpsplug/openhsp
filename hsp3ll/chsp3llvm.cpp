@@ -1672,6 +1672,7 @@ static void TraceTaskProc()
 			Alert((char*)ErrMsg.c_str());
 		}
 		cctx->FPM->run(*task.func);
+		cctx->Passes->run(*cctx->module);
 
 		if (task.func) {
 			task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.func);
@@ -1703,6 +1704,7 @@ static void TraceTaskProc()
 		}
 
 		cctx->FPM->run(*task.spFunc);
+		cctx->Passes->run(*cctx->module);
 		//Passes->run(*cctx->module);
 
 		if (true) {
@@ -1823,6 +1825,7 @@ void Task::setup()
 		Alert((char*)ErrMsg.c_str());
 	}
 	cctx->FPM->run(*func);
+	cctx->Passes->run(*cctx->module);
 }
 
 int MakeSource(CHsp3Op *hsp, int option, void *ref)

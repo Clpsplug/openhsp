@@ -34,6 +34,7 @@
 
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 #include "supio.h"
@@ -427,33 +428,21 @@ void CompileContext::CreateEE()
 	//REGISTER_RT(void(int, int), PushSysvar);
 #undef REGISTER_RT
 
-
-#if 0
-	//TargetData *TD = new TargetData(*EE->getTargetData());
-
-	Passes = new legacy::PassManager();
-
-	//Passes->add(TD);
-	//createStandardLTOPasses( Passes, false, true, true );
-#endif
-
+	Passes.reset(new PassManager());
 	FPM.reset(new FunctionPassManager(module));
 
-	// Set up the optimizer pipeline.  Start with registering info about how the
-	// target lays out data structures.
-	FPM->add(new DataLayoutPass(*EE->getDataLayout()));
-	// Provide basic AliasAnalysis support for GVN.
-	FPM->add(createBasicAliasAnalysisPass());
-	// Promote allocas to registers.
-	FPM->add(createPromoteMemoryToRegisterPass());
-	// Do simple "peephole" optimizations and bit-twiddling optzns.
-	FPM->add(createInstructionCombiningPass());
-	// Reassociate expressions.
-	FPM->add(createReassociatePass());
-	// Eliminate Common SubExpressions.
-	FPM->add(createGVNPass());
-	// Simplify the control flow graph (deleting unreachable blocks, etc).
-	FPM->add(createCFGSimplificationPass());
+	Passes->add(new DataLayoutPass(module));
+	Passes->add(createVerifierPass());
+
+	PassManagerBuilder Builder;
+	Builder.OptLevel = 3;
+	Builder.SizeLevel = 0;
+	Builder.Inliner = createFunctionInliningPass(Builder.OptLevel, Builder.SizeLevel);
+
+	Builder.populateModulePassManager(*Passes);
+	Builder.populateLTOPassManager(*Passes, false, true);
+	Builder.populateFunctionPassManager(*FPM);
+	Builder.populateModulePassManager(*Passes);
 
 	FPM->doInitialization();
 
