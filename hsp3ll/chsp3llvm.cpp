@@ -78,6 +78,7 @@ public:
 	int numCurCall;
 	int numChange;
 	long long time;
+	std::vector<VarStatics*> varStatics;
 	std::map<VarId, Value*> llVariables;
 	std::set<BasicBlock*> returnBlocks;
 
@@ -1521,8 +1522,11 @@ static void TraceTaskProc()
 	task.numCall++;
 
 	bool change = false;
-	for (auto& var : task.block->usedVariables) {
-		VarStatics *stat = sVarStatics[var];
+	auto varSize = task.block->usedVariables.size();
+	for (auto i = 0; i < varSize; ++i) {
+		auto& var = task.block->usedVariables[i];
+		auto stat = task.varStatics[i];
+		//VarStatics *stat = sVarStatics[var];
 
 		switch (var.type()) {
 		case TYPE_VAR:
@@ -1739,11 +1743,13 @@ int MakeSource(CHsp3Op *hsp, int option, void *ref)
 	for (auto it = sProgram.blocks.begin(); it != sProgram.blocks.end(); ++it) {
 		Task *task = new Task(it->second);
 		__Task[task->block->id] = task;
-
-		for (auto& var : task->block->usedVariables) {
-			if (sVarStatics.find(var) != sVarStatics.end())
-				continue;
-			sVarStatics[var] = new VarStatics();
+		task->varStatics.resize(task->block->usedVariables.size());
+		for (auto i = 0; i < task->block->usedVariables.size(); i++) {
+			auto& var = task->block->usedVariables[i];
+			if (sVarStatics.find(var) == sVarStatics.end()) {
+				sVarStatics[var] = new VarStatics();
+			}
+			task->varStatics[i] = sVarStatics[var];
 		}
 	}
 
