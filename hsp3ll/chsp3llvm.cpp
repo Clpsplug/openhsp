@@ -171,14 +171,6 @@ static string GetTaskFuncName(const Task *task)
 	return (format("%1%_%2%") % task->block->name % task->numCall).str();
 }
 
-static VarStatics *GetTaskVar(Task *task, const VarId& id)
-{
-	if (task->block->usedVariables.find(id) != task->block->usedVariables.end())
-		return sVarStatics[id];
-	else
-		return NULL;
-}
-
 static bool CheckCompileType(Task *task, Op *op, CHsp3Op *hsp, const std::map<VarId, int>& varTypes)
 {
 	switch (op->GetOpCode()) {
@@ -203,7 +195,6 @@ static bool CheckCompileType(Task *task, Op *op, CHsp3Op *hsp, const std::map<Va
 	{
 		//PushVarPtrOp *pv = (PushVarPtrOp*)op;
 		//const VarId &varId = pv->GetVarId();
-		//VarStatics *var = GetTaskVar( task, varId );
 		//PVal& pval = mem_var[varId.val()];
 		//op->flag = pval.flag;
 	}
@@ -394,7 +385,6 @@ static BasicBlock *CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 	{
 		PushVarOp *pv = (PushVarOp*)op;
 		const VarId &varId = pv->GetVarId();
-		VarStatics *var = GetTaskVar(task, varId);
 		PVal& pval = mem_var[varId.val()];
 		Value *lpvar;
 		string varname(hsp->MakeImmidiateCPPVarName(pv->GetVarType(), pv->GetVarNo()));
@@ -544,8 +534,6 @@ static BasicBlock *CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		{
 			//PushVarOp *pv = (PushVarOp*)op;
 			const VarId &varId = prmop->GetVarId();
-			VarStatics *var = GetTaskVar(task, varId);
-			//PVal& pval = mem_var[varId.val()];
 			PVal &pval = *FuncPrm(varId.prm());
 			Value *lpvar;
 			string varname(hsp->MakeImmidiateCPPVarName(varId.type(), varId.val()));
@@ -777,7 +765,6 @@ static BasicBlock *CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 	{
 		VarCalcOp *vs = (VarCalcOp*)op;
 		const VarId &varId = vs->GetVarId();
-		VarStatics *var = GetTaskVar(task, varId);
 		PVal& pval = mem_var[varId.val()];
 
 		if (vs->useRegister) {
@@ -886,7 +873,6 @@ static BasicBlock *CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 	{
 		VarSetOp *vs = (VarSetOp*)op;
 		const VarId &varId = vs->GetVarId();
-		VarStatics *var = GetTaskVar(task, varId);
 
 		if (vs->compile == VALUE) {
 			if (vs->useRegister) {
@@ -1286,7 +1272,7 @@ static void CompileTask(CHsp3Op *hsp, Task *task, Function *func, BasicBlock *re
 	LLVMContext &context = cctx->context;
 
 	std::map<VarId, int> varTypes;
-	for (auto var : task->block->usedVariables) {
+	for (auto& var : task->block->usedVariables) {
 		if (var.type() == TYPE_STRUCT) {
 			try {
 				const STRUCTPRM *st = hsp->GetMInfo(var.val());
@@ -1387,7 +1373,7 @@ static void CompileTask(CHsp3Op *hsp, Task *task, Function *func, BasicBlock *re
 			break;
 		}
 	}
-	for (auto var : task->block->usedVariables) {
+	for (auto& var : task->block->usedVariables) {
 		VarStatics *stat = sVarStatics[var];
 		VarInfo *info = sProgram.varInfos[var];
 		if (!info->localVar)
@@ -1470,7 +1456,7 @@ static void CompileTaskGeneral(CHsp3Op *hsp, Task *task, Function *func, BasicBl
 	LLVMContext &Context = cctx->context;
 
 	std::map<VarId, int> varTypes;
-	for (auto var : task->block->usedVariables) {
+	for (auto& var : task->block->usedVariables) {
 		varTypes[var] = HSPVAR_FLAG_MAX;
 	}
 
@@ -1535,7 +1521,7 @@ static void TraceTaskProc()
 	task.numCall++;
 
 	bool change = false;
-	for (auto var : task.block->usedVariables) {
+	for (auto& var : task.block->usedVariables) {
 		VarStatics *stat = sVarStatics[var];
 
 		switch (var.type()) {
@@ -1642,7 +1628,7 @@ void DumpResult()
 			task.numCall, task.numCurCall, task.numChange, task.time);
 		*Out << buf;
 
-		for (auto var : task.block->usedVariables) {
+		for (auto& var : task.block->usedVariables) {
 			VarStatics *stat = sVarStatics[var];
 			VarInfo *info = sProgram.varInfos[var];
 			switch (var.type()) {
@@ -1754,7 +1740,7 @@ int MakeSource(CHsp3Op *hsp, int option, void *ref)
 		Task *task = new Task(it->second);
 		__Task[task->block->id] = task;
 
-		for (auto var : task->block->usedVariables) {
+		for (auto& var : task->block->usedVariables) {
 			if (sVarStatics.find(var) != sVarStatics.end())
 				continue;
 			sVarStatics[var] = new VarStatics();
@@ -1772,7 +1758,7 @@ int MakeSource(CHsp3Op *hsp, int option, void *ref)
 				continue;
 
 			Task &task = *__Task[i];
-			for (auto v : task.block->usedVariables) {
+			for (auto& v : task.block->usedVariables) {
 				varTypes[v] = HSPVAR_FLAG_MAX;
 			}
 			hsp->UpdateOpType(task.block, varTypes);

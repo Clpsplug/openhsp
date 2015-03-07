@@ -122,6 +122,7 @@ void UpdateOperands( Block *task )
 		}
 	}
 
+	std::set<VarId> usedVariables;
 	// アクセスしている変数をリストアップ
 	for ( auto op : task->operations ) {
 		switch ( op->GetOpCode() ) {
@@ -135,12 +136,16 @@ void UpdateOperands( Block *task )
 		case VAR_CALC_OP:
 			{
 				VarRefOp *vr = (VarRefOp*)op;
-				task->usedVariables.insert( vr->GetVarId() );
+				usedVariables.insert( vr->GetVarId() );
 			}
 			break;
 		default:
 			break;
 		}
+	}
+
+	for (auto& var : usedVariables) {
+		task->usedVariables.push_back(var);
 	}
 
 	for ( auto op : task->operations ) {
