@@ -1422,6 +1422,11 @@ static void CompileTask(CHsp3Op *hsp, Task *task, Function *func, BasicBlock *re
 		}
 	}
 
+	if (printDebugDump) {
+		std::ofstream out(task->block->name + "_jit");
+		out << "#" << task->block->name << std::endl;
+		PrettyPrint(out, task->block);
+	}
 
 	task->llVariables.clear();
 	auto curBB = BasicBlock::Create(context,
