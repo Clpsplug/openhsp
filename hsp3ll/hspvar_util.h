@@ -93,6 +93,7 @@ void VarCalc( PVal *pv, int aval, int op );
 
 int GetOpTypeRet( int op, int tflagA, int tflagB );
 int GetFuncTypeRet( int type, int val, int pnum );
-
+int PopInt( void );
+double PopDouble( void );
 
 #endif

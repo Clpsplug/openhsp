@@ -379,16 +379,16 @@ std::ostream& operator<< (std::ostream &out, const Op &op) {
 
 	switch (op.compile) {
 	case DEFAULT:
-		out << "[DE]";
+		out << "[DS]";
 		break;
-	case VALUE:
-		out << "[VA]";
-		break;
-	case VALUE_STACK:
-		out << "[VS]";
+	case OPT_STACK:
+		out << "[OS]";
 		break;
 	case DEFAULT_VALUE:
 		out << "[DV]";
+		break;
+	case OPT_VALUE:
+		out << "[OV]";
 		break;
 	default:
 		out << "[?]";

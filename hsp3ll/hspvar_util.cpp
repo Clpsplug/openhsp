@@ -1386,3 +1386,37 @@ int GetFuncTypeRet( int type, int val, int pnum )
 	}
 	return HSPVAR_FLAG_MAX;
 }
+
+int PopInt( void )
+{
+	if ( StackGetLevel <= 0 ) return PARAM_END;
+
+	STMDATA* stm = StackPeek;
+	int tflag = stm->type;
+	int val = stm->ival;
+	auto proc = HspVarCoreGetProc(HSPVAR_FLAG_INT);
+
+	if ( tflag != HSPVAR_FLAG_INT ) {
+		val = *(int *)proc->Cnv(stm->ptr, tflag);
+	}
+	StackDecLevel;
+	return val;
+}
+
+double PopDouble( void )
+{
+	if ( StackGetLevel <= 0 ) return PARAM_END;
+
+	STMDATA* stm = StackPeek;
+	int tflag = stm->type;
+	double val;
+	auto proc = HspVarCoreGetProc(HSPVAR_FLAG_DOUBLE);
+
+	if ( tflag == HSPVAR_FLAG_DOUBLE ) {
+		val = *(double *)stm->ptr;
+	} else {
+		val = *(double *)proc->Cnv( stm->ptr, tflag );
+	}
+	StackDecLevel;
+	return val;
+}

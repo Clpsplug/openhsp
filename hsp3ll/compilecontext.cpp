@@ -423,6 +423,8 @@ void CompileContext::CreateEE()
 	REGISTER_RT(int(int, int), CallIntIntfunc);
 	REGISTER_RT(double(int, int), CallDoubleSysvar);
 	REGISTER_RT(int(int, int), CallIntSysvar);
+	REGISTER_RT(int(), PopInt);
+	REGISTER_RT(double(), PopDouble);
 
 	//REGISTER_RT(char(), HspIf);
 	//REGISTER_RT(void(int, int), PushSysvar);
@@ -514,6 +516,8 @@ void* HspLazyFunctionCreator(const string &name)
 	RESOLVE_FUNC(CallIntIntfunc);
 	RESOLVE_FUNC(CallDoubleSysvar);
 	RESOLVE_FUNC(CallIntSysvar);
+	RESOLVE_FUNC(PopInt);
+	RESOLVE_FUNC(PopDouble);
 
 	RESOLVE_FUNC(strlen);
 
