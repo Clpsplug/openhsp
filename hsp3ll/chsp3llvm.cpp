@@ -172,6 +172,11 @@ static string GetTaskFuncName(const Task *task)
 	return (format("%1%_%2%") % task->block->name % task->numCall).str();
 }
 
+static string GetOpPrefix(const Op *op)
+{
+	return (format("%1%_%2%_") % op->GetName() % op->id).str();
+}
+
 static bool CanOptimize(const Task *task, const Op *op, CHsp3Op *hsp, const std::map<VarId, int>& varTypes)
 {
 	switch (op->GetOpCode()) {
@@ -455,14 +460,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		}
 		task->llVariables[pv->GetVarId()] = lpvar;
 
-		Value *lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, "a_" + varname);
-		LoadInst *lptr = builder.CreateLoad(lpval, "b_" + varname);
+		Value *lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, GetOpPrefix(op) + "a_" + varname);
+		LoadInst *lptr = builder.CreateLoad(lpval, GetOpPrefix(op) + "b_" + varname);
 		Value *ptr;
 		if (pval.flag == HSPVAR_FLAG_INT) {
-			ptr = builder.CreateBitCast(lptr, tyPI32, "c_" + varname);
+			ptr = builder.CreateBitCast(lptr, tyPI32, GetOpPrefix(op) + "c_" + varname);
 		}
 		else if (pval.flag == HSPVAR_FLAG_DOUBLE) {
-			ptr = builder.CreateBitCast(lptr, tyPD, "d_" + varname);
+			ptr = builder.CreateBitCast(lptr, tyPD, GetOpPrefix(op) + "d_" + varname);
 		}
 		else {
 			return NULL;
@@ -490,11 +495,11 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 					static_cast<Value*>(pv->operands[0]->llValue));
 
 				Value *cond = builder.CreateICmpSGE(ofs1,
-					ConstantInt::get(Type::getInt32Ty(context), 0));
+					ConstantInt::get(Type::getInt32Ty(context), 0), GetOpPrefix(op));
 
-				inBB = BasicBlock::Create(context, "in", func);
-				outBB = BasicBlock::Create(context, "out", func);
-				uniBB = BasicBlock::Create(context, "uni", func);
+				inBB = BasicBlock::Create(context, GetOpPrefix(op) + "in", func);
+				outBB = BasicBlock::Create(context, GetOpPrefix(op) + "out", func);
+				uniBB = BasicBlock::Create(context, GetOpPrefix(op) + "uni", func);
 				builder.CreateCondBr(cond, inBB, outBB);
 
 				builder.SetInsertPoint(inBB);
@@ -511,14 +516,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				builder.CreateCall2(pArray2, lpvar,
 					static_cast<Value*>(pv->operands[i]->llValue));
 			}
-			Value *lpofs = builder.CreateConstGEP2_32(lpvar, 0, 8);
-			LoadInst *lofs = builder.CreateLoad(lpofs, "offset_" + varname);
+			Value *lpofs = builder.CreateConstGEP2_32(lpvar, 0, 8, GetOpPrefix(op));
+			LoadInst *lofs = builder.CreateLoad(lpofs, GetOpPrefix(op) + "offset_" + varname);
 			Value* ofs;
 			if (pv->GetArrayDim() == 1) {
 				builder.CreateBr(uniBB);
 
 				builder.SetInsertPoint(uniBB);
-				PHINode *ofsPhi = builder.CreatePHI(Type::getInt32Ty(context), 2);
+				PHINode *ofsPhi = builder.CreatePHI(Type::getInt32Ty(context), 2, GetOpPrefix(op));
 				ofsPhi->addIncoming(ofs1, inBB);
 				ofsPhi->addIncoming(lofs, outBB);
 				ofs = ofsPhi;
@@ -528,17 +533,17 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				ofs = lofs;
 			}
 
-			aptr = builder.CreateGEP(ptr, ofs);
+			aptr = builder.CreateGEP(ptr, ofs, GetOpPrefix(op));
 		}
 
 		//Value *lpval = builder.CreateConstGEP2_32( lpvar, 0, 4 );
 
 		if (pval.flag == HSPVAR_FLAG_INT) {
-			op->llValue = builder.CreateLoad(aptr, "p_" + varname);
+			op->llValue = builder.CreateLoad(aptr, GetOpPrefix(op) + "p_" + varname);
 			return GenOptStack(task, op, curBB, pval.flag);
 		}
 		else if (pval.flag == HSPVAR_FLAG_DOUBLE) {
-			op->llValue = builder.CreateLoad(aptr, "p_" + varname);
+			op->llValue = builder.CreateLoad(aptr, GetOpPrefix(op) + "p_" + varname);
 			return GenOptStack(task, op, curBB, pval.flag);
 		}
 		else {
@@ -607,14 +612,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			lpvar = cctx->GetValue(bb, varId.type(), varId.val(), varId.prm());
 			//}
 			task->llVariables[varId] = lpvar;
-			Value *lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, "a_" + varname);
-			LoadInst *lptr = builder.CreateLoad(lpval, "b_" + varname);
+			Value *lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, GetOpPrefix(op) + "a_" + varname);
+			LoadInst *lptr = builder.CreateLoad(lpval, GetOpPrefix(op) + "b_" + varname);
 			Value *ptr;
 			if (pval.flag == HSPVAR_FLAG_INT) {
-				ptr = builder.CreateBitCast(lptr, tyPI32, "c_" + varname);
+				ptr = builder.CreateBitCast(lptr, tyPI32, GetOpPrefix(op) + "c_" + varname);
 			}
 			else if (pval.flag == HSPVAR_FLAG_DOUBLE) {
-				ptr = builder.CreateBitCast(lptr, tyPD, "d_" + varname);
+				ptr = builder.CreateBitCast(lptr, tyPD, GetOpPrefix(op) + "d_" + varname);
 			}
 			else {
 				return NULL;
@@ -643,15 +648,15 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 						static_cast<Value*>(prmop->operands[i]->llValue));
 				}
 				Value *lpofs = builder.CreateConstGEP2_32(lpvar, 0, 8);
-				LoadInst *lofs = builder.CreateLoad(lpofs, "offset_" + varname);
+				LoadInst *lofs = builder.CreateLoad(lpofs, GetOpPrefix(op) + "offset_" + varname);
 				aptr = builder.CreateGEP(ptr, lofs);
 			}
 
 			if (pval.flag == HSPVAR_FLAG_INT) {
-				op->llValue = builder.CreateLoad(aptr, "var_" + varname);
+				op->llValue = builder.CreateLoad(aptr, GetOpPrefix(op) + "var_" + varname);
 			}
 			else if (pval.flag == HSPVAR_FLAG_DOUBLE) {
-				op->llValue = builder.CreateLoad(aptr, "var_" + varname);
+				op->llValue = builder.CreateLoad(aptr, GetOpPrefix(op) + "var_" + varname);
 			}
 			else {
 				return NULL;
@@ -661,11 +666,13 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		}
 		case MPTYPE_DNUM:
 			op->llValue = cctx->CreateCallImm(bb, "FuncPrmD",
-				prmop->GetPrmNo());
+				prmop->GetPrmNo(),
+				GetOpPrefix(op));
 			return GenOptStack(task, op, bb, HSPVAR_FLAG_DOUBLE);
 		case MPTYPE_INUM:
 			op->llValue = cctx->CreateCallImm(bb, "FuncPrmI",
-				prmop->GetPrmNo());
+				prmop->GetPrmNo(),
+				GetOpPrefix(op));
 			return GenOptStack(task, op, bb, HSPVAR_FLAG_INT);
 		}
 		return NULL;
@@ -709,7 +716,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				for (int i = 0; i < op->operands.size() - 1; ++i) {
 					args.push_back(static_cast<Value*>(op->operands[i]->llValue));
 				}
-				op->llValue = builder.CreateCall(f, makeArrayRef(args));
+				op->llValue = builder.CreateCall(f, makeArrayRef(args), GetOpPrefix(op));
 				return GenOptStack(task, op, bb, retType);
 			}
 
@@ -747,11 +754,13 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		switch (retType) {
 		case HSPVAR_FLAG_DOUBLE:
 			op->llValue = cctx->CreateCallImm(bb, "CallDouble" + hsp->GetHSPCmdTypeName(pcop->GetCmdType()),
-				pcop->GetCmdVal(), pcop->GetCmdPNum());
+				pcop->GetCmdVal(), pcop->GetCmdPNum(),
+				GetOpPrefix(op));
 			break;
 		case HSPVAR_FLAG_INT:
 			op->llValue = cctx->CreateCallImm(bb, "CallInt" + hsp->GetHSPCmdTypeName(pcop->GetCmdType()),
-				pcop->GetCmdVal(), pcop->GetCmdPNum());
+				pcop->GetCmdVal(), pcop->GetCmdPNum(),
+				GetOpPrefix(op));
 			break;
 		default:
 			Alert("Type Missmatch");
@@ -767,26 +776,30 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		if (op->operands[0]->flag == HSPVAR_FLAG_INT && op->operands[1]->flag == HSPVAR_FLAG_INT) {
 			op->llValue = cctx->CreateCalcI(calc->GetCalcOp(),
 				static_cast<Value*>(op->operands[1]->llValue),
-				static_cast<Value*>(op->operands[0]->llValue));
+				static_cast<Value*>(op->operands[0]->llValue),
+				GetOpPrefix(op));
 		}
 		else if (op->operands[0]->flag == HSPVAR_FLAG_DOUBLE && op->operands[1]->flag == HSPVAR_FLAG_DOUBLE) {
 			op->llValue = cctx->CreateCalcD(calc->GetCalcOp(),
 				static_cast<Value*>(op->operands[1]->llValue),
-				static_cast<Value*>(op->operands[0]->llValue));
+				static_cast<Value*>(op->operands[0]->llValue),
+				GetOpPrefix(op));
 		}
 		else if (op->operands[0]->flag == HSPVAR_FLAG_DOUBLE && op->operands[1]->flag == HSPVAR_FLAG_INT) {
 			Value *v = builder.CreateFPToSI(static_cast<Value*>(op->operands[0]->llValue),
 				TypeBuilder<types::i<32>, false>::get(context));
 			op->llValue = cctx->CreateCalcI(calc->GetCalcOp(),
 				static_cast<Value*>(op->operands[1]->llValue),
-				v);
+				v,
+				GetOpPrefix(op));
 		}
 		else if (op->operands[0]->flag == HSPVAR_FLAG_INT && op->operands[1]->flag == HSPVAR_FLAG_DOUBLE) {
 			Value *v = builder.CreateSIToFP(static_cast<Value*>(op->operands[0]->llValue),
 				TypeBuilder<types::ieee_double, false>::get(context));
 			op->llValue = cctx->CreateCalcD(calc->GetCalcOp(),
 				static_cast<Value*>(op->operands[1]->llValue),
-				v);
+				v,
+				GetOpPrefix(op));
 		}
 		//return GenOptStack(task, op, bb, op->operands[0]->flag);
 		int flag = static_cast<Value*>(op->llValue)->getType()->isIntegerTy(32) ? HSPVAR_FLAG_INT : HSPVAR_FLAG_DOUBLE;
@@ -814,7 +827,8 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				}
 				else if (op->operands[0]->flag == HSPVAR_FLAG_DOUBLE) {
 					rhs = builder.CreateFPToSI(static_cast<Value*>(op->operands[0]->llValue),
-						TypeBuilder<types::i<32>, false>::get(context));
+						TypeBuilder<types::i<32>, false>::get(context),
+						GetOpPrefix(op));
 				}
 				else {
 					return NULL;
@@ -832,7 +846,8 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				}
 				else if (op->operands[0]->flag == HSPVAR_FLAG_INT) {
 					rhs = builder.CreateSIToFP(static_cast<Value*>(op->operands[0]->llValue),
-						TypeBuilder<types::ieee_double, false>::get(context));
+						TypeBuilder<types::ieee_double, false>::get(context),
+						GetOpPrefix(op));
 				}
 				else {
 					return NULL;
@@ -869,13 +884,15 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			}
 			else if (op->operands[0]->flag == HSPVAR_FLAG_DOUBLE) {
 				rhs = builder.CreateFPToSI(static_cast<Value*>(op->operands[0]->llValue),
-					TypeBuilder<types::i<32>, false>::get(context));
+					TypeBuilder<types::i<32>, false>::get(context),
+					GetOpPrefix(op));
 			}
 			else {
 				return NULL;
 			}
 
-			Value *result = cctx->CreateCalcI(vs->GetCalcOp(), lhs, rhs);
+			Value *result = cctx->CreateCalcI(vs->GetCalcOp(), lhs, rhs,
+				GetOpPrefix(op));
 			if (!result)
 				return NULL;
 			op->llValue = builder.CreateStore(result, lp);
@@ -889,7 +906,8 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			}
 			else if (op->operands[0]->flag == HSPVAR_FLAG_INT) {
 				rhs = builder.CreateSIToFP(static_cast<Value*>(op->operands[0]->llValue),
-					TypeBuilder<types::ieee_double, false>::get(context));
+					TypeBuilder<types::ieee_double, false>::get(context),
+					GetOpPrefix(op));
 			}
 			else {
 				return NULL;
@@ -936,7 +954,8 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				}
 				else if (op->operands[0]->flag == HSPVAR_FLAG_DOUBLE) {
 					rhs = builder.CreateFPToSI(static_cast<Value*>(op->operands[0]->llValue),
-						TypeBuilder<types::i<32>, false>::get(context));
+						TypeBuilder<types::i<32>, false>::get(context),
+						GetOpPrefix(op));
 				}
 				else {
 					return NULL;
@@ -952,7 +971,8 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				}
 				else if (op->operands[0]->flag == HSPVAR_FLAG_INT) {
 					rhs = builder.CreateSIToFP(static_cast<Value*>(op->operands[0]->llValue),
-						TypeBuilder<types::ieee_double, false>::get(context));
+						TypeBuilder<types::ieee_double, false>::get(context),
+						GetOpPrefix(op));
 				}
 				else {
 					return NULL;
@@ -1012,8 +1032,8 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 
 		builder.SetInsertPoint(bb);
 
-		BasicBlock *thenBB = BasicBlock::Create(context, "then", func);
-		BasicBlock *elseBB = BasicBlock::Create(context, "else", func);
+		BasicBlock *thenBB = BasicBlock::Create(context, GetOpPrefix(op) + "then", func);
+		BasicBlock *elseBB = BasicBlock::Create(context, GetOpPrefix(op) + "else", func);
 
 
 		Value *cond = builder.CreateICmpEQ(static_cast<Value*>(op->operands[0]->llValue),
@@ -1021,7 +1041,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		builder.CreateCondBr(cond, thenBB, elseBB);
 
 		builder.SetInsertPoint(thenBB);
-		cctx->CreateCallImm(thenBB, "TaskSwitch", comp->GetNextTask());
+		cctx->CreateCallImm(thenBB, "TaskSwitch", comp->GetNextTask(), GetOpPrefix(op));
 		builder.CreateBr(retBB);
 		task->returnBlocks.insert(thenBB);
 
@@ -1508,7 +1528,7 @@ static void CompileTask(CHsp3Op *hsp, Task *task, Function *func, BasicBlock *re
 	if (printDebugDump) {
 		std::ofstream out(task->block->name + "_jit");
 		out << "#" << task->block->name << std::endl;
-		PrettyPrint(out, task->block);
+		PrettyPrint(out, task->block, hsp);
 	}
 
 	task->llVariables.clear();
@@ -1598,7 +1618,7 @@ static void TraceTaskProc()
 		return;
 	}
 
-#if 1
+#if 1 && !defined(HSP_PROFILE)
 	if (task.numCurCall > 1000) {// FIXME Œ^‚ª•Ï‚í‚ç‚È‚¢‚±‚Æ‚ðŠm”F‚·‚×‚«
 #if HSP_PROFILE
 		__HspTaskFunc[cur] = ProfileTaskProc;
@@ -1768,9 +1788,9 @@ void __HspSetup(Hsp3r *hsp3r)
 		__HspTaskFunc = new CHSP3_TASK[sLabMax];
 	}
 
-	if (printDebugDump) {
-		Alert("HspSetup");
-	}
+//	if (printDebugDump) {
+//		Alert("HspSetup");
+//	}
 	for (int i = 0; i < sLabMax + 1; i++) {
 		if (!__Task[i]) {
 			__HspTaskFunc[i] = NULL;
@@ -1866,7 +1886,7 @@ int MakeSource(CHsp3Op *hsp, int option, void *ref)
 			}
 			hsp->UpdateOpType(task.block, varTypes);
 			out << "#" << task.block->name << std::endl;
-			PrettyPrint(out, task.block);
+			PrettyPrint(out, task.block, hsp);
 		}
 	}
 	return 0;

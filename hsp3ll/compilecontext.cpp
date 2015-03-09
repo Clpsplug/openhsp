@@ -185,7 +185,7 @@ StructType* CompileContext::GetPValType()
 	return (StructType*)module->getTypeByName("struct.PVal");
 }
 
-Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name)
+Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, const llvm::Twine &vname)
 {
 	Function *f = module->getFunction(name);
 	if (!f)
@@ -194,10 +194,10 @@ Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name)
 	std::vector<Value*> args;
 
 	builder.SetInsertPoint(bblock);
-	return builder.CreateCall(f, makeArrayRef(args));
+	return builder.CreateCall(f, makeArrayRef(args), vname);
 }
 
-Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int a)
+Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int a, const llvm::Twine &vname)
 {
 	Function *f = module->getFunction(name);
 	if (!f)
@@ -208,10 +208,10 @@ Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int
 	args.push_back(ConstantInt::get(Type::getInt32Ty(context), a));
 
 	builder.SetInsertPoint(bblock);
-	return builder.CreateCall(f, makeArrayRef(args));
+	return builder.CreateCall(f, makeArrayRef(args), vname);
 }
 
-Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int a, int b)
+Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int a, int b, const llvm::Twine &vname)
 {
 	Function *f = module->getFunction(name);
 	if (!f)
@@ -223,113 +223,113 @@ Value* CompileContext::CreateCallImm(BasicBlock *bblock, const string& name, int
 	args.push_back(ConstantInt::get(Type::getInt32Ty(context), b));
 
 	builder.SetInsertPoint(bblock);
-	return builder.CreateCall(f, makeArrayRef(args));
+	return builder.CreateCall(f, makeArrayRef(args), vname);
 }
 
-Value* CompileContext::CreateCalcI(int code, Value *a, Value *b)
+Value* CompileContext::CreateCalcI(int code, Value *a, Value *b, const llvm::Twine &name)
 {
 	switch (code) {
 	case CALCCODE_ADD:
-		return builder.CreateAdd(a, b);
+		return builder.CreateAdd(a, b, name);
 	case CALCCODE_SUB:
-		return builder.CreateSub(a, b);
+		return builder.CreateSub(a, b, name);
 	case CALCCODE_MUL:
-		return builder.CreateMul(a, b);
+		return builder.CreateMul(a, b, name);
 	case CALCCODE_DIV:
-		return builder.CreateSDiv(a, b);
+		return builder.CreateSDiv(a, b, name);
 	case CALCCODE_MOD:
-		return builder.CreateSRem(a, b);
+		return builder.CreateSRem(a, b, name);
 	case CALCCODE_AND:
-		return builder.CreateAnd(a, b);
+		return builder.CreateAnd(a, b, name);
 	case CALCCODE_OR:
-		return builder.CreateOr(a, b);
+		return builder.CreateOr(a, b, name);
 	case CALCCODE_XOR:
-		return builder.CreateXor(a, b);
+		return builder.CreateXor(a, b, name);
 	case CALCCODE_EQ:
 	{
-		Value *cond = builder.CreateICmpEQ(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateICmpEQ(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_NE:
 	{
-		Value *cond = builder.CreateICmpNE(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateICmpNE(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_GT:
 	{
-		Value *cond = builder.CreateICmpSGT(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateICmpSGT(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_LT:
 	{
-		Value *cond = builder.CreateICmpSLT(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateICmpSLT(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_GTEQ:
 	{
-		Value *cond = builder.CreateICmpSGE(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateICmpSGE(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_LTEQ:
 	{
-		Value *cond = builder.CreateICmpSLE(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateICmpSLE(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_RR:
-		return builder.CreateAShr(a, b);
+		return builder.CreateAShr(a, b, name);
 	case CALCCODE_LR:
-		return builder.CreateShl(a, b);
+		return builder.CreateShl(a, b, name);
 
 	default:
 		return NULL;
 	}
 }
 
-Value* CompileContext::CreateCalcD(int code, Value *a, Value *b)
+Value* CompileContext::CreateCalcD(int code, Value *a, Value *b, const llvm::Twine &name)
 {
 	switch (code) {
 	case CALCCODE_ADD:
-		return builder.CreateFAdd(a, b);
+		return builder.CreateFAdd(a, b, name);
 	case CALCCODE_SUB:
-		return builder.CreateFSub(a, b);
+		return builder.CreateFSub(a, b, name);
 	case CALCCODE_MUL:
-		return builder.CreateFMul(a, b);
+		return builder.CreateFMul(a, b, name);
 	case CALCCODE_DIV:
-		return builder.CreateFDiv(a, b);
+		return builder.CreateFDiv(a, b, name);
 	case CALCCODE_MOD:
-		return builder.CreateFRem(a, b);
+		return builder.CreateFRem(a, b, name);
 		//	case CALCCODE_AND:
 		//	case CALCCODE_OR:
 		//	case CALCCODE_XOR:
 	case CALCCODE_EQ:
 	{
-		Value *cond = builder.CreateFCmpUEQ(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateFCmpUEQ(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_NE:
 	{
-		Value *cond = builder.CreateFCmpUNE(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateFCmpUNE(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_GT:
 	{
-		Value *cond = builder.CreateFCmpUGT(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateFCmpUGT(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_LT:
 	{
-		Value *cond = builder.CreateFCmpULT(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateFCmpULT(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_GTEQ:
 	{
-		Value *cond = builder.CreateFCmpUGE(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateFCmpUGE(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 	case CALCCODE_LTEQ:
 	{
-		Value *cond = builder.CreateFCmpULE(a, b);
-		return builder.CreateZExt(cond, Type::getInt32Ty(context));
+		Value *cond = builder.CreateFCmpULE(a, b, name);
+		return builder.CreateZExt(cond, Type::getInt32Ty(context), name);
 	}
 		//	case CALCCODE_RR:
 		//	case CALCCODE_LR:

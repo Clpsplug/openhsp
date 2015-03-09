@@ -151,6 +151,7 @@
     <ClInclude Include="chsp3rev.h" />
     <ClInclude Include="..\hsp3\win32gui\comobj.h" />
     <ClInclude Include="..\hsp3\win32gui\comobj_event.h" />
+    <ClInclude Include="compilecontext.h" />
     <ClInclude Include="csstack.h" />
     <ClInclude Include="..\hsp3\dpmread.h" />
     <ClInclude Include="..\hsp3\win32gui\fcpoly.h" />

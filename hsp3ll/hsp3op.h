@@ -155,6 +155,12 @@ public:
 	{
 		return va;
 	}
+	virtual std::string GetParam() const
+	{
+		char buf[256];
+		sprintf( buf, "(%d, %d, %d, %d)", type, val, prm, va );
+		return buf;
+	}
 	virtual bool IsParam() const
 	{
 		return false;
@@ -341,15 +347,15 @@ public:
 	CallOp( int type, int val, int pnum ) : type( type ), val( val ), pnum ( pnum )
 	{
 	}
-	int GetCmdType()
+	int GetCmdType() const
 	{
 		return type;
 	}
-	int GetCmdVal()
+	int GetCmdVal() const
 	{
 		return val;
 	}
-	int GetCmdPNum()
+	int GetCmdPNum() const
 	{
 		return pnum;
 	}
@@ -556,6 +562,6 @@ public:
 };
 
 void AnalyzeProgram( Program* program );
-void PrettyPrint( std::ostream &out, const Block *block );
+void PrettyPrint(std::ostream &out, const Block *block, const CHsp3* hsp);
 
 #endif
