@@ -208,7 +208,6 @@ LIBS_GP = \
 
 TARGETS = emscripten/hsp3dish.js emscripten/hsp3dish-gp.js
 
-LIBS =
 
 all: $(TARGETS)
 

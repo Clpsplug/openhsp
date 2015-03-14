@@ -395,13 +395,8 @@ void hgio_reset( void )
         
     //テクスチャの設定
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-#if defined(HSPEMSCRIPTEN)
-	glDisable(GL_TEXTURE_2D);
-#else
     glEnable(GL_TEXTURE_2D);
-#endif
 
-        
     //ブレンドの設定
     glEnable(GL_BLEND);
 #ifdef HSPIOS
@@ -1110,7 +1105,6 @@ void hgio_fcopy( float distx, float disty, short xx, short yy, short srcsx, shor
     *flp++ = x2;
     *flp++ = y2;
 
-	glEnable(GL_TEXTURE_2D);
 	ChangeTex( tex->texid );
 //    glBindTexture( GL_TEXTURE_2D, tex->texid );
     glVertexPointer( 2, GL_FLOAT,0,vertf2D );
@@ -1121,7 +1115,6 @@ void hgio_fcopy( float distx, float disty, short xx, short yy, short srcsx, shor
 	
 //    glDisableClientState(GL_COLOR_ARRAY);
     glDrawArrays(GL_TRIANGLE_STRIP,0,4);
-	glDisable(GL_TEXTURE_2D);
 }
 
 

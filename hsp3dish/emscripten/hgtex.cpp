@@ -44,11 +44,6 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#include "SDL/SDL.h"
-#include "SDL/SDL_image.h"
-#include "SDL/SDL_opengl.h"
-
-#include "appengine.h"
 #include <emscripten.h>
 #endif
 
@@ -105,6 +100,10 @@ void TexReset( void )
 	//	リセット
 	//
 	curtex = -1;
+
+#if defined(HSPEMSCRIPTEN)
+	glDisable(GL_TEXTURE_2D);
+#endif
 }
 
 
