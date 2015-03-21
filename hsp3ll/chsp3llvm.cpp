@@ -94,6 +94,8 @@ public:
 	Block *block;
 	Function *func;
 	Function *spFunc;
+	CHSP3_TASK taskFunc;
+	CHSP3_TASK taskSpFunc;
 	CHSP3_TASK funcPtr;
 	BasicBlock *entry;
 	int numCall;
@@ -111,6 +113,7 @@ public:
 	bool skipTypeCheck;
 
 	explicit Task(Block *block) : block(block), numCall(0), numCurCall(0), numChange(0), time(0),
+		taskFunc(nullptr), taskSpFunc(nullptr),
 		useGeneralFunc(true), skipTypeCheck(false)
 	{
 	}
@@ -1712,13 +1715,14 @@ static void TraceTaskProc()
 		cctx->Passes->run(*cctx->module);
 
 		if (task.func) {
-			task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.func);
+			task.taskFunc = (CHSP3_TASK)EE->getPointerToFunction(task.func);
+			task.funcPtr = task.taskFunc;
 		}
 	}
 	else if (change) {
 		task.numChange++;
 		task.numCurCall = 1;
-		task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.func);
+		task.funcPtr = task.taskFunc;
 	}
 	else {
 		task.numCurCall++;
@@ -1751,7 +1755,8 @@ static void TraceTaskProc()
 		}
 
 		if (task.spFunc) {
-			task.funcPtr = (CHSP3_TASK)EE->getPointerToFunction(task.spFunc);
+			task.taskSpFunc = (CHSP3_TASK)EE->getPointerToFunction(task.spFunc);
+			task.funcPtr = task.taskSpFunc;
 		}
 	}
 
@@ -1836,7 +1841,9 @@ void __HspSetup(Hsp3r *hsp3r)
 				DumpModule(fname.c_str(), *task.cctx->module);
 			}
 
-			task.funcPtr = (CHSP3_TASK)task.cctx->EE->getPointerToFunction(task.func);
+			if (!task.taskFunc)
+				task.taskFunc = (CHSP3_TASK)task.cctx->EE->getPointerToFunction(task.func);
+			task.funcPtr = task.taskFunc;
 			__HspTaskFunc[i] = TraceTaskProc;//task.funcPtr;
 		}
 	}
@@ -1848,7 +1855,7 @@ void __HspEntry(void)
 
 	Task &task = *__Task[sLabMax];
 
-	void *fp = task.cctx->EE->getPointerToFunction(task.func);
+	void *fp = task.funcPtr;
 	CHSP3_TASK t = (CHSP3_TASK)fp;
 	t();
 }
