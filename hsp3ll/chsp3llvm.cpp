@@ -65,6 +65,28 @@ public:
 	}
 };
 
+struct PValCache {
+	Value* reg;
+	Value* pval;
+	Value* pt;
+
+	PValCache() : reg(nullptr), pval(nullptr), pt(nullptr) {
+	}
+
+	static PValCache getRegister(Value* val) {
+		PValCache p;
+		p.reg = val;
+		return p;
+	}
+
+	static PValCache getVar(Value* pval, Value* pt = nullptr) {
+		PValCache p;
+		p.pval = pval;
+		p.pt = pt;
+		return p;
+	}
+};
+
 class Task {
 public:
 	CompileContext *cctx;
@@ -79,7 +101,7 @@ public:
 	int numChange;
 	long long time;
 	std::vector<VarStatics*> varStatics;
-	std::map<VarId, Value*> llVariables;
+	std::map<VarId, PValCache> llVariables;
 	std::set<BasicBlock*> returnBlocks;
 
 	std::set<Task*> incoming;
@@ -115,6 +137,35 @@ public:
 		cctx->builder.CreateRetVoid();
 
 		return func;
+	}
+	/*
+	
+static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, BasicBlock *retBB, Task *task, Op *op)
+{
+	auto cctx = task->cctx;
+	LLVMContext &context = cctx->context;
+	auto &builder = cctx->builder;
+	builder.SetInsertPoint(bb);
+
+	Type *tyPI8 = TypeBuilder<types::i<8>*, false>::get(context);
+	Type *tyPI32 = TypeBuilder<types::i<32>*, false>::get(context);
+	Type *tyPD = TypeBuilder<types::ieee_double*, false>::get(context);
+*/
+	PValCache& getPValCache(BasicBlock *bb, const VarId& varId, const std::string& prefix = "")
+	{
+		auto it = llVariables.find(varId);
+		if ( it != llVariables.end() ) {
+			return it->second;
+		}
+		else {
+			LLVMContext &context = cctx->context;
+			auto &builder = cctx->builder;
+			auto lpvar = cctx->GetValue(bb, varId.type(), varId.val(), varId.prm());
+			auto lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, prefix + "_");
+			auto lptr = builder.CreateLoad(lpval, prefix + "pt_");
+			llVariables[varId] = PValCache::getVar(lpvar, lptr);
+			return llVariables[varId];
+		}
 	}
 };
 
@@ -438,13 +489,13 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		PushVarOp *pv = (PushVarOp*)op;
 		const VarId &varId = pv->GetVarId();
 		PVal& pval = mem_var[varId.val()];
-		Value *lpvar;
 		string varname(hsp->MakeImmidiateCPPVarName(pv->GetVarType(), pv->GetVarNo()));
 
-		auto it = task->llVariables.find(pv->GetVarId());
-
 		if (pv->useRegister) {
-			op->llValue = it->second;
+			auto it = task->llVariables.find(pv->GetVarId());
+			if (it == task->llVariables.end())
+				return nullptr;
+			op->llValue = it->second.reg;
 
 			Function *pNop = cctx->module->getFunction("Nop");
 			builder.SetInsertPoint(bb);
@@ -452,22 +503,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			return bb;
 		}
 
-		if (it != task->llVariables.end()) {
-			lpvar = it->second;
-		}
-		else {
-			lpvar = cctx->GetValue(bb, pv->GetVarId());
-		}
-		task->llVariables[pv->GetVarId()] = lpvar;
+		auto& pvc = task->getPValCache(bb, varId, GetOpPrefix(op));
 
-		Value *lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, GetOpPrefix(op) + "a_" + varname);
-		LoadInst *lptr = builder.CreateLoad(lpval, GetOpPrefix(op) + "b_" + varname);
 		Value *ptr;
 		if (pval.flag == HSPVAR_FLAG_INT) {
-			ptr = builder.CreateBitCast(lptr, tyPI32, GetOpPrefix(op) + "c_" + varname);
+			ptr = builder.CreateBitCast(pvc.pt, tyPI32, GetOpPrefix(op) + "i32_" + varname);
 		}
 		else if (pval.flag == HSPVAR_FLAG_DOUBLE) {
-			ptr = builder.CreateBitCast(lptr, tyPD, GetOpPrefix(op) + "d_" + varname);
+			ptr = builder.CreateBitCast(pvc.pt, tyPD, GetOpPrefix(op) + "d_" + varname);
 		}
 		else {
 			return NULL;
@@ -491,7 +534,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				// 1次元配列の場合はインラインで範囲チェック
 				builder.SetInsertPoint(curBB);
 				Function *pArray2 = cctx->module->getFunction("HspVarCoreArray1D");
-				ofs1 = builder.CreateCall2(pArray2, lpvar,
+				ofs1 = builder.CreateCall2(pArray2, pvc.pval,
 					static_cast<Value*>(pv->operands[0]->llValue));
 
 				Value *cond = builder.CreateICmpSGE(ofs1,
@@ -509,14 +552,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			}
 			builder.SetInsertPoint(curBB);
 			Function *pReset = cctx->module->getFunction("HspVarCoreReset");
-			builder.CreateCall(pReset, lpvar);
+			builder.CreateCall(pReset, pvc.pval);
 
 			Function *pArray2 = cctx->module->getFunction("HspVarCoreArray2");
 			for (int i = 0; i < pv->GetArrayDim(); i++) {
-				builder.CreateCall2(pArray2, lpvar,
+				builder.CreateCall2(pArray2, pvc.pval,
 					static_cast<Value*>(pv->operands[i]->llValue));
 			}
-			Value *lpofs = builder.CreateConstGEP2_32(lpvar, 0, 8, GetOpPrefix(op));
+			Value *lpofs = builder.CreateConstGEP2_32(pvc.pval, 0, 8, GetOpPrefix(op));
 			LoadInst *lofs = builder.CreateLoad(lpofs, GetOpPrefix(op) + "offset_" + varname);
 			Value* ofs;
 			if (pv->GetArrayDim() == 1) {
@@ -535,8 +578,6 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 
 			aptr = builder.CreateGEP(ptr, ofs, GetOpPrefix(op));
 		}
-
-		//Value *lpval = builder.CreateConstGEP2_32( lpvar, 0, 4 );
 
 		if (pval.flag == HSPVAR_FLAG_INT) {
 			op->llValue = builder.CreateLoad(aptr, GetOpPrefix(op) + "p_" + varname);
@@ -590,10 +631,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			//PushVarOp *pv = (PushVarOp*)op;
 			const VarId &varId = prmop->GetVarId();
 			PVal &pval = *FuncPrm(varId.prm());
-			Value *lpvar;
 			string varname(hsp->MakeImmidiateCPPVarName(varId.type(), varId.val()));
-
-			auto it = task->llVariables.find(varId);
 
 			/*
 							if ( pv->useRegister) {
@@ -605,21 +643,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 							return bb;
 							}
 							*/
+			auto& pvc = task->getPValCache(bb, varId, GetOpPrefix(op));
 
-			//if ( it != task->llVariables.end() ) {
-			//lpvar = it->second;
-			//} else {
-			lpvar = cctx->GetValue(bb, varId.type(), varId.val(), varId.prm());
-			//}
-			task->llVariables[varId] = lpvar;
-			Value *lpval = builder.CreateConstGEP2_32(lpvar, 0, 4, GetOpPrefix(op) + "a_" + varname);
-			LoadInst *lptr = builder.CreateLoad(lpval, GetOpPrefix(op) + "b_" + varname);
 			Value *ptr;
 			if (pval.flag == HSPVAR_FLAG_INT) {
-				ptr = builder.CreateBitCast(lptr, tyPI32, GetOpPrefix(op) + "c_" + varname);
+				ptr = builder.CreateBitCast(pvc.pt, tyPI32, GetOpPrefix(op) + "i32_" + varname);
 			}
 			else if (pval.flag == HSPVAR_FLAG_DOUBLE) {
-				ptr = builder.CreateBitCast(lptr, tyPD, GetOpPrefix(op) + "d_" + varname);
+				ptr = builder.CreateBitCast(pvc.pt, tyPD, GetOpPrefix(op) + "d_" + varname);
 			}
 			else {
 				return NULL;
@@ -640,14 +671,14 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				curBB = bb;
 				builder.SetInsertPoint(curBB);
 				Function *pReset = cctx->module->getFunction("HspVarCoreReset");
-				builder.CreateCall(pReset, lpvar);
+				builder.CreateCall(pReset, pvc.pval);
 
 				Function *pArray2 = cctx->module->getFunction("HspVarCoreArray2");
 				for (int i = 0; i < prmop->GetArrayDim(); i++) {
-					builder.CreateCall2(pArray2, lpvar,
+					builder.CreateCall2(pArray2, pvc.pval,
 						static_cast<Value*>(prmop->operands[i]->llValue));
 				}
-				Value *lpofs = builder.CreateConstGEP2_32(lpvar, 0, 8);
+				Value *lpofs = builder.CreateConstGEP2_32(pvc.pval, 0, 8);
 				LoadInst *lofs = builder.CreateLoad(lpofs, GetOpPrefix(op) + "offset_" + varname);
 				aptr = builder.CreateGEP(ptr, lofs);
 			}
@@ -834,7 +865,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 					return NULL;
 				}
 				Value *result = cctx->CreateCalcI(vs->GetCalcOp(),
-					it->second, rhs);
+					it->second.reg, rhs);
 				if (!result)
 					return NULL;
 				op->llValue = result;
@@ -854,7 +885,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 				}
 
 				Value *result = cctx->CreateCalcD(vs->GetCalcOp(),
-					it->second, rhs);
+					it->second.reg, rhs);
 				if (!result)
 					return NULL;
 				op->llValue = result;
@@ -862,7 +893,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 			else {
 				return NULL;
 			}
-			task->llVariables[vs->GetVarId()] = static_cast<Value*>(op->llValue);
+			task->llVariables[vs->GetVarId()] = PValCache::getRegister(static_cast<Value*>(op->llValue));
 
 			Function *pNop = cctx->module->getFunction("Nop");
 			builder.SetInsertPoint(bb);
@@ -932,7 +963,7 @@ static BasicBlock* CompileOp(CHsp3Op *hsp, Function *func, BasicBlock *bb, Basic
 		if (true || vs->compile == OPT_VALUE) {
 			if (vs->useRegister) {
 				op->llValue = op->operands[0]->llValue;
-				task->llVariables[vs->GetVarId()] = static_cast<Value*>(op->llValue);
+				task->llVariables[vs->GetVarId()] = PValCache::getRegister(static_cast<Value*>(op->llValue));
 
 				Function *pNop = cctx->module->getFunction("Nop");
 				builder.SetInsertPoint(bb);
