@@ -1,0 +1,7 @@
+
+#uselib "hsp3rtest.dll"
+
+#cfunc f "funca"	int, double
+
+mes "" + f(10, 2.3)
+mes "" + f(1, 5.2)

@@ -1,0 +1,14 @@
+//#include "hsp3cl.as"
+
+#module
+#defcfunc funcA int a, double b, local c
+	mes a
+	return b * 2
+#defcfunc funcB str s
+	return strlen(s)
+#global
+
+mes "a"
+mes "> " + funcA(2, 2.51)
+
+mes "ok"

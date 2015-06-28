@@ -1409,10 +1409,12 @@ int CHsp3Cpp::MakeSource( int option, void *ref )
 	int maxvar;
 	char mes[4096];
 	makeoption = option;
+	dll = true;//FIXME
 
 	OutMes( "//\r\n//\thsp3cnv(%s) generated source\r\n//\t[%s]\r\n//\r\n", HSP3CNV_VERSION, orgname );
 	OutMes( "#include \"hsp3r.h\"\r\n" );
-	OutMes( "\r\n#define _HSP3CNV_DATE %s\n#define _HSP3CNV_TIME %s\r\n", localinfo.CurrentDate(), localinfo.CurrentTime() );
+	OutMes( "#include \"hsp3rdll.h\"\r\n" );
+	OutMes( "\r\n#define _HSP3CNV_DATE %s\r\n#define _HSP3CNV_TIME %s\r\n", localinfo.CurrentDate(), localinfo.CurrentTime() );
 	OutMes( "#define _HSP3CNV_MAXVAR %d\r\n", hsphed->max_val );
 	OutMes( "#define _HSP3CNV_MAXHPI %d\r\n", hsphed->max_hpi );
 	OutMes( "#define _HSP3CNV_VERSION 0x%x\r\n", hsphed->version );
@@ -1536,7 +1538,125 @@ int CHsp3Cpp::MakeSource( int option, void *ref )
 		OutMes( "char __HspDataName[]=%s;\r\n\r\n", stname.GetBuffer() );
 	}
 
-	OutMes( "\r\n/*-----------------------------------------------------------*/\r\n\r\n" );
+	if (true) {
+		OutMes( "\r\n/*-export----------------------------------------------------*/\r\n\r\n" );
+		curot = otmax;
+
+		//		タスク(ラベル)テーブルを作成する
+		//
+		OutMes( "\r\n" );
+
+		for(labindex = 0; labindex<otmax; labindex++) {
+			if ( GetOTInfo( labindex ) == -1 ) {
+				continue;
+			} else {
+				STRUCTDAT *fnc;
+				fnc = GetFInfo( GetOTInfo( labindex ) );
+				bool isFunc;
+				OutMes( "HSP_DLL_EXPORT " );
+				switch( fnc->index ) {
+				case STRUCTDAT_INDEX_FUNC:					// 定義命令
+					OutMes( "void" );
+					isFunc = true;
+					break;
+				case STRUCTDAT_INDEX_CFUNC:					// 定義関数
+					OutMes( "int" );
+					isFunc = true;
+					break;
+				default:
+					isFunc = false;
+					break;
+				}
+				if (!isFunc)
+					continue;
+				OutMes( " %s(", GetDS(fnc->nameidx) );
+				bool first = true;
+				for(i=fnc->prmindex;i<fnc->prmmax;i++) {
+					char prmname[4096];
+					auto mi = GetMInfo( i );
+					switch( mi->mptype ) {
+					case MPTYPE_VAR:
+						sprintf( prmname, "PVal*" );
+						break;
+					case MPTYPE_LOCALSTRING:
+					case MPTYPE_STRING:
+						sprintf( prmname, "char*" );
+						break;
+					case MPTYPE_DNUM:
+						sprintf( prmname, "double" );
+						break;
+					case MPTYPE_INUM:
+						sprintf( prmname, "int" );
+						break;
+					case MPTYPE_LABEL:
+						sprintf( prmname, "int" );
+						break;
+					case MPTYPE_LOCALVAR:
+						break;
+					case MPTYPE_ARRAYVAR:
+						sprintf( prmname,  "array" );
+						break;
+					case MPTYPE_SINGLEVAR:
+						sprintf( prmname,  "var" );
+						break;
+					default:
+						break;
+					}
+					if( mi->mptype == MPTYPE_LOCALVAR )
+						continue;
+					if (!first) {
+						OutMes( ", " );
+					}
+					OutMes( "%s prm%d", prmname, i - fnc->prmindex );
+					first = false;
+				}
+				OutMes( ") {\r\n" );
+				OutMes( "\tPushFuncEnd();\r\n" );
+				int va = 0;
+				for(i=fnc->prmmax-1;i>=fnc->prmindex;i--) {
+					auto mi = GetMInfo( i );
+					switch( mi->mptype ) {
+					case MPTYPE_VAR:
+					case MPTYPE_LOCALSTRING:
+					case MPTYPE_STRING:
+					case MPTYPE_DNUM:
+					case MPTYPE_INUM:
+					case MPTYPE_LABEL:
+					case MPTYPE_ARRAYVAR:
+					case MPTYPE_SINGLEVAR:
+						OutMes( "\tPush%s(prm%d);\r\n",
+								GetHSPCmdTypeName(mi->mptype),
+								i - fnc->prmindex );
+						va++;
+						break;
+					case MPTYPE_LOCALVAR:
+						break;
+					default:
+						break;
+					}
+				}
+				OutMes( "\tPushModcmd(%d, %d);\r\n", fnc->subid, va );
+				switch( fnc->index ) {
+				case STRUCTDAT_INDEX_FUNC:
+					OutMes( "\treturn;\r\n" );
+					break;
+				case STRUCTDAT_INDEX_CFUNC:
+					OutMes( "\treturn PopInt();\r\n" );//TODO
+					break;
+				default:
+					break;
+				}
+				//OutMes( " L%04d,\t// %s\r\n", labindex,  GetDS(fnc->nameidx) );
+				// OutMes( "\t{ %d,%d, %d,%d,%d,%d,%d, (void *)%d },\r\n",
+				// 	st->index, st->subid,
+				// 	st->prmindex, st->prmmax,
+				// 	curst, st->size, st->otindex, st->funcflag );
+				OutMes( "}\r\n\r\n" );
+			}
+		}
+
+		OutMes( "\r\n/*-----------------------------------------------------------*/\r\n\r\n" );
+	}
 
 	//		初期化ファンクションを作成する
 	//

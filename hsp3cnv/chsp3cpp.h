@@ -46,6 +46,7 @@ private:
 	CMemBuf *prmbuf;				// パラメーター解析・変換用バッファ
 	int	maxprms;					// パラメーター解析結果(全パラメーター数)
 	PRMAINFO prma[MAX_PRMAINFO];	// パラメーター解析結果
+	bool dll;
 
 	//		Internal Function
 	//
