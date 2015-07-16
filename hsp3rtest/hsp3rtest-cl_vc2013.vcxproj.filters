@@ -33,7 +33,7 @@
     <ClCompile Include="hsp3r.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="hsp3win.cpp">
+    <ClCompile Include="..\hsp3\win32gui\hspvar_comobj.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="..\hsp3\hspvar_core.cpp">
@@ -66,22 +66,13 @@
     <ClCompile Include="..\hsp3\strnote.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="test.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="..\hsp3\win32gui\comobj_event.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
     <ClCompile Include="..\hsp3\win32gui\comobj.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\fcpoly.cpp">
-      <Filter>ソース ファイル\hsp3gui</Filter>
-    </ClCompile>
     <ClCompile Include="..\hsp3\win32gui\filedlg.cpp">
-      <Filter>ソース ファイル\hsp3gui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\hsp3gr_wingui.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
     <ClCompile Include="..\hsp3\win32gui\hsp3ext_win.cpp">
@@ -93,25 +84,16 @@
     <ClCompile Include="..\hsp3\win32gui\hspvar_variant.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\hspwnd_obj.cpp">
-      <Filter>ソース ファイル\hsp3gui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\hspwnd_win.cpp">
-      <Filter>ソース ファイル\hsp3gui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\main.cpp">
-      <Filter>ソース ファイル\hsp3gui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\mmman.cpp">
-      <Filter>ソース ファイル\hsp3gui</Filter>
-    </ClCompile>
     <ClCompile Include="..\hsp3\win32gui\supio_win.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\stb_image.c">
+    <ClCompile Include="hsp3cl.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hsp3\win32\main.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\hsp3\win32gui\hspvar_comobj.cpp">
+    <ClCompile Include="..\hsp3\win32\hsp3gr_win.cpp">
       <Filter>ソース ファイル\hsp3gui</Filter>
     </ClCompile>
   </ItemGroup>
