@@ -1063,7 +1063,6 @@ void CHsp3Cpp::MakeCPPSubProgCmd( int cmdtype, int cmdval )
 	case 0x02:								// return
 	case 0x03:								// break
 	case 0x05:								// loop
-	case 0x0c:								// (hidden)foreach check
 	case 0x10:								// end
 	case 0x1b:								// assert
 	case 0x11:								// stop
@@ -1099,6 +1098,23 @@ void CHsp3Cpp::MakeCPPSubProgCmd( int cmdtype, int cmdval )
 		pnum = MakeCPPParam(1);
 		OutputCPPParam();
 		OutLine( "PushLabel(%d); %s(%d,%d); return;\r\n", curot, GetHSPCmdTypeName(cmdtype), cmdval, pnum+1 );
+		MakeCPPTask( curot );
+		curot++;
+		break;
+		}
+
+	case 0x0c:								// (hidden)foreach check
+		{
+		int pnum;
+		OutLine( "// foreach check\r\n" );
+		getCS();
+		CMemBuf calcbuf;
+		GetCPPExpressionSub( &calcbuf );
+		OutLine( "%s\r\n", calcbuf.GetBuffer() );
+		pnum = MakeCPPParam();
+
+		OutputCPPParam();
+		OutLine( "PushLabel(%d); %s(%d,%d); return;\r\n", curot, GetHSPCmdTypeName(cmdtype), cmdval, pnum + 1 );
 		MakeCPPTask( curot );
 		curot++;
 		break;

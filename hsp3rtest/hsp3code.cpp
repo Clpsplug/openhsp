@@ -1968,14 +1968,19 @@ static int cmdfunc_prog( int cmd )
 		{
 		LOOPDAT *lop;
 		unsigned short *label;
+		unsigned short *label2;
 		if (hspctx->looplev>=(HSP3_REPEAT_MAX-1)) throw HSPERR_TOO_MANY_NEST;
 		label = code_getlb();
+		label2 = code_getlb();
 		code_next();
 		hspctx->looplev++;
 		lop=GETLOP(hspctx->looplev);
 		lop->cnt = 0;
 		lop->time = ETRLOOP;
-		lop->pt = mcsbak;
+		//lop->pt = mcsbak;
+		mem_loopppt[hspctx->looplev] = (int)label;
+		mem_loopppt2[hspctx->looplev] = (int)label2;
+		code_setpc( label );
 		break;
 		}
 	case 0x0c:								// (hidden)foreach check
@@ -1984,24 +1989,29 @@ static int cmdfunc_prog( int cmd )
 		PVal *pval;
 		LOOPDAT *lop;
 		unsigned short *label;
+		unsigned short *label2;
 		if (hspctx->looplev==0) throw HSPERR_LOOP_WITHOUT_REPEAT;
 		label = code_getlb();
 		code_next();
 		lop=GETLOP(hspctx->looplev);
 
 		pval = code_getpval();
+		label2 = code_getlb();
 		if ( lop->cnt >= pval->len[1] ) {		// ループ終了
 			hspctx->looplev--;
-			mcs = label;
-			code_next();
+			mcs = label2;
+			code_setpc(mcs);
+			//code_next();
 			break;
 		}
 		if ( pval->support & HSPVAR_SUPPORT_VARUSE ) {
 			i = HspVarCoreGetUsing( pval, HspVarCorePtrAPTR( pval, lop->cnt ) );
 			if ( i == 0 ) {						// スキップ
-				mcs=label;
+				mcs=label2;
 				val=0x05;type=TYPE_PROGCMD;exflg=0;	// set 'loop' code
 			}
+		} else {
+			code_setpc(label);
 		}
 		break;
 		}
