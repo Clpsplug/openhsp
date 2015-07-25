@@ -1,0 +1,8 @@
+
+	repeat 10
+		a.cnt = "#" + cnt
+	loop
+
+	foreach a
+		mes a.cnt
+	loop
