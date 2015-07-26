@@ -1279,6 +1279,15 @@ void CToken::CheckInternalProgCMD( int opt, int orgcs )
 	int i;
 	switch(opt) {
 
+	case 0x02:					//return
+		if (replev > 0) {
+#ifdef JPNMSG
+			Mesf( "Œx:ƒ‹[ƒv’†‚Éreturn‚ª‚ ‚è‚Ü‚· s%d.", cg_orgline );
+#else
+			Mesf( "Warning:return used in loop at %d", cg_orgline );
+#endif
+		}
+		break;
 	case 0x03:					// repeat break
 	case 0x06:					// repeat continue
 		if (replev==0) {
