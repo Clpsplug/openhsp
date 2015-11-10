@@ -46,7 +46,7 @@ inline AnimationController* Game::getAnimationController() const
 
 inline AudioController* Game::getAudioController() const
 {
-    return NULL;//_audioController;
+    return _audioController;
 }
 
 inline PhysicsController* Game::getPhysicsController() const
@@ -56,7 +56,7 @@ inline PhysicsController* Game::getPhysicsController() const
 
 inline ScriptController* Game::getScriptController() const
 {
-    return NULL;//_scriptController;
+    return _scriptController;
 }
 inline AIController* Game::getAIController() const
 {
@@ -131,9 +131,9 @@ inline void Game::getAccelerometerValues(float* pitch, float* roll)
     Platform::getAccelerometerValues(pitch, roll);
 }
 
-inline void Game::getRawSensorValues(float* accelX, float* accelY, float* accelZ, float* gyroX, float* gyroY, float* gyroZ)
+inline void Game::getSensorValues(float* accelX, float* accelY, float* accelZ, float* gyroX, float* gyroY, float* gyroZ)
 {
-    return Platform::getRawSensorValues(accelX, accelY, accelZ, gyroX, gyroY, gyroZ);
+    return Platform::getSensorValues(accelX, accelY, accelZ, gyroX, gyroY, gyroZ);
 }
 
 inline unsigned int Game::getGamepadCount() const
