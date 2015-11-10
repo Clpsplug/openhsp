@@ -126,7 +126,7 @@ public:
 
 
 //  HGIMG4 Node Object
-class gpobj {
+class gpobj : public Ref {
 public:
 	gpobj();
 	~gpobj();

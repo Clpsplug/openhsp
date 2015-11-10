@@ -40,13 +40,17 @@ Node::~Node()
     removeAllChildren();
     if (_drawable)
         _drawable->setNode(NULL);
+#ifndef HSPDISH
     if (_audioSource)
         _audioSource->setNode(NULL);
+#endif
     Ref* ref = dynamic_cast<Ref*>(_drawable);
     SAFE_RELEASE(ref);
     SAFE_RELEASE(_camera);
     SAFE_RELEASE(_light);
+#ifndef HSPDISH
     SAFE_RELEASE(_audioSource);
+#endif
     SAFE_DELETE(_collisionObject);
     SAFE_RELEASE(_userObject);
     SAFE_DELETE(_tags);
@@ -984,6 +988,7 @@ void Node::cloneInto(Node* node, NodeCloneContext& context) const
         if (ref)
             ref->release();
     }
+#ifndef HSPDISH
     if (AudioSource* audio = getAudioSource())
     {
         AudioSource* clone = audio->clone(context);
@@ -992,6 +997,7 @@ void Node::cloneInto(Node* node, NodeCloneContext& context) const
         if (ref)
             ref->release();
     }
+#endif
     if (_tags)
     {
         node->_tags = new std::map<std::string, std::string>(_tags->begin(), _tags->end());
@@ -1005,11 +1011,16 @@ void Node::cloneInto(Node* node, NodeCloneContext& context) const
 
 AudioSource* Node::getAudioSource() const
 {
+#ifndef HSPDISH
     return _audioSource;
+#else
+	return NULL;
+#endif
 }
 
 void Node::setAudioSource(AudioSource* audio)
 {
+#ifndef HSPDISH
     if (_audioSource == audio)
         return;
 
@@ -1026,6 +1037,7 @@ void Node::setAudioSource(AudioSource* audio)
         _audioSource->addRef();
         _audioSource->setNode(this);
     }
+#endif
 }
 
 PhysicsCollisionObject* Node::getCollisionObject() const

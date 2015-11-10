@@ -275,10 +275,12 @@ void SceneLoader::applyNodeProperty(SceneNode& sceneNode, Node* node, const Prop
         {
         case SceneNodeProperty::AUDIO:
         {
+#ifndef HSPDISH
             AudioSource* audioSource = AudioSource::create(p);
             node->setAudioSource(audioSource);
             SAFE_RELEASE(audioSource);
             break;
+#endif
         }
         case SceneNodeProperty::MATERIAL:
         {

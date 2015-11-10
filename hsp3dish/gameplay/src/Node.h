@@ -705,8 +705,12 @@ protected:
     Camera* _camera;
     /** The light component attached to this node. */
     Light* _light;
+#ifndef HSPDISH
     /** The audio source component attached to this node. */
     AudioSource* _audioSource;
+#else
+    char* _audioSource;
+#endif
     /** The collision object component attached to this node. */
     PhysicsCollisionObject* _collisionObject;
     /** The AI agent component attached to this node. */

@@ -4,6 +4,10 @@
 #include "Script.h"
 #include "Game.h"
 
+#ifdef HSPDISH
+#define GP_NO_LUA_BINDINGS
+#endif
+
 namespace gameplay
 {
 
@@ -20,6 +24,7 @@ class ScriptController
 
 public:
 
+#ifndef HSPDISH
     /**
      * Loads the given script file and executes its code (if it is not
      * alreay loaded).
@@ -535,9 +540,10 @@ public:
      * @param str2 The second string to print on the same line as str1.
      */
     static void print(const char* str1, const char* str2);
-
+#endif
 private:
 
+#ifndef HSPDISH
     /**
      * Allows time listener interaction from Lua scripts.
      */
@@ -563,6 +569,7 @@ private:
         /** Holds the name of the Lua script function to call back. */
         std::string function;
     };
+#endif
 
     /**
      * Constructor.
@@ -579,6 +586,7 @@ private:
      */
     ~ScriptController();
 
+#ifndef HSPDISH
     /**
      * Called to initialize the script controller.
      */
@@ -690,8 +698,10 @@ private:
     std::map<std::string, std::vector<Script*> > _scripts;
     std::vector<Script*> _envStack;
     std::list<ScriptTimeListener*> _timeListeners;
+#endif
 };
 
+#ifndef HSPDISH
 /** Template specialization. */
 template<> void ScriptController::executeFunction<void>(const char* func);
 /** Template specialization. */
@@ -1148,9 +1158,11 @@ public:
     static bool luaCheckBool(lua_State* state, int n);
 
 };
-
+#endif
 }
 
+#ifndef HSPDISH
 #include "ScriptController.inl"
+#endif
 
 #endif

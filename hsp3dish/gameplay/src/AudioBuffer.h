@@ -46,19 +46,23 @@ private:
 
     struct AudioStreamStateWav
     {
+#ifndef HSPDISH
         long dataStart;
         unsigned int dataSize;
         ALuint format;
         ALuint frequency;
+#endif
     };
 
     struct AudioStreamStateOgg
     {
+#ifndef HSPDISH
         long dataStart;
         unsigned int dataSize;
         ALuint format;
         ALuint frequency;
         OggVorbis_File oggFile;
+#endif
     };
 
     enum { STREAMING_BUFFER_QUEUE_SIZE = 3 };

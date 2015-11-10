@@ -121,7 +121,7 @@ public:
      * @param size The size to draw text (0 for default size).
      * @param rightToLeft Whether to draw text from right to left.
      */
-    void drawText(const char* text, int x, int y, const Vector4& color, unsigned int size = 0,
+    int drawText(const char* text, int x, int y, const Vector4& color, unsigned int size = 0,
                   bool rightToLeft = false);
 
     /**

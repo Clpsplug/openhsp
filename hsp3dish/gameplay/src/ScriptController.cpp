@@ -6,6 +6,7 @@
 #include "lua/lua_all_bindings.h"
 #endif
 
+#ifndef HSPDISH
 #define GENERATE_LUA_GET_POINTER(type, checkFunc) \
     ScriptController* sc = Game::getInstance()->getScriptController(); \
     /* Check that the parameter is the correct type. */ \
@@ -52,10 +53,12 @@
 
 #define POP_NESTED_VARIABLE() \
     lua_settop(_lua, top)
+#endif
 
 namespace gameplay
 {
 
+#ifndef HSPDISH
 extern void splitURL(const std::string& url, std::string* file, std::string* id);
 
 /**
@@ -648,8 +651,12 @@ void ScriptController::print(const char* str1, const char* str2)
 {
     gameplay::print("%s%s", str1, str2);
 }
+#endif
 
-ScriptController::ScriptController() : _lua(NULL)
+ScriptController::ScriptController()
+#ifndef HSPDISH
+	: _lua(NULL)
+#endif
 {
 }
 
@@ -657,6 +664,7 @@ ScriptController::~ScriptController()
 {
 }
 
+#ifndef HSPDISH
 static const char* lua_print_function = 
     "function print(...)\n"
     "    ScriptController.print(table.concat({...},\"\\t\"), \"\\n\")\n"
@@ -1810,5 +1818,5 @@ bool ScriptUtil::luaCheckBool(lua_State* state, int n)
     }
     return (lua_toboolean(state, n) != 0);
 }
-
+#endif
 }

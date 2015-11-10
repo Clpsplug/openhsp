@@ -62,11 +62,13 @@ void Logger::log(Level level, const char* message, ...)
         // Pass call to registered C log function
         (*state.logFunctionC)(level, str);
     }
+#ifndef HSPDISH
     else if (state.logFunctionLua)
     {
         // Pass call to registered Lua log function
         Game::getInstance()->getScriptController()->executeFunction<void>(state.logFunctionLua, "[Logger::Level]s", level, str);
     }
+#endif
     else
     {
         // Log to the default output

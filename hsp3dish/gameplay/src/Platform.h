@@ -41,7 +41,7 @@ public:
      * @return The created platform interface.
      * @script{ignore}
      */
-    static Platform* create(Game* game);
+    static Platform* create(Game* game, void* attachToWindow = NULL, int sizex=0, int sizey=0, bool fullscreen=false);
 
     /**
      * Begins processing the platform messages.

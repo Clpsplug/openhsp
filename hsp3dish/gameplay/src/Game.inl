@@ -44,20 +44,25 @@ inline AnimationController* Game::getAnimationController() const
     return _animationController;
 }
 
+#ifndef HSPDISH
 inline AudioController* Game::getAudioController() const
 {
     return _audioController;
 }
+#endif
 
 inline PhysicsController* Game::getPhysicsController() const
 {
     return _physicsController;
 }
 
+#ifndef HSPDISH
 inline ScriptController* Game::getScriptController() const
 {
     return _scriptController;
 }
+#endif
+
 inline AIController* Game::getAIController() const
 {
     return _aiController;

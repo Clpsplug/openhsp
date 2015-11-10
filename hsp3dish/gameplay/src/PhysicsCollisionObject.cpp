@@ -305,12 +305,14 @@ PhysicsCollisionObject::ScriptListener* PhysicsCollisionObject::ScriptListener::
     Script* script = NULL;
     if (!scriptPath.empty())
     {
+#ifndef HSPDISH
         script = Game::getInstance()->getScriptController()->loadScript(scriptPath.c_str(), Script::GLOBAL);
         if (!script)
         {
             // Failed to load script
             return NULL;
         }
+#endif
     }
 
     ScriptListener* listener = new ScriptListener();
@@ -323,9 +325,11 @@ PhysicsCollisionObject::ScriptListener* PhysicsCollisionObject::ScriptListener::
 void PhysicsCollisionObject::ScriptListener::collisionEvent(PhysicsCollisionObject::CollisionListener::EventType type,
     const PhysicsCollisionObject::CollisionPair& collisionPair, const Vector3& contactPointA, const Vector3& contactPointB)
 {
+#ifndef HSPDISH
     Game::getInstance()->getScriptController()->executeFunction<void>(function.c_str(), 
         "[PhysicsCollisionObject::CollisionListener::EventType]<PhysicsCollisionObject::CollisionPair><Vector3><Vector3>",
         type, &collisionPair, &contactPointA, &contactPointB);
+#endif
 }
 
 }

@@ -4,14 +4,17 @@
 namespace gameplay
 {
 
+#ifndef HSPDISH
 class AudioListener;
 class AudioSource;
+#endif
 
 /**
  * Defines a class for controlling game audio.
  */
 class AudioController
 {
+#ifndef HSPDISH
     friend class Game;
     friend class AudioSource;
 
@@ -69,6 +72,7 @@ private:
     bool _streamingThreadActive;
     std::unique_ptr<std::thread> _streamingThread;
     std::unique_ptr<std::mutex> _streamingMutex;
+#endif
 };
 
 }

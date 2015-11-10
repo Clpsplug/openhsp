@@ -63,9 +63,15 @@ Game::Game()
     : _initialized(false), _state(UNINITIALIZED), _pausedCount(0),
       _frameLastFPS(0), _frameCount(0), _frameRate(0), _width(0), _height(0),
       _clearDepth(1.0f), _clearStencil(0), _properties(NULL),
-      _animationController(NULL), _audioController(NULL),
+      _animationController(NULL),
+#ifndef HSPDISH
+	  _audioController(NULL),
+#endif
       _physicsController(NULL), _aiController(NULL), _audioListener(NULL),
-      _timeEvents(NULL), _scriptController(NULL), _scriptTarget(NULL)
+      _timeEvents(NULL)
+#ifndef HSPDISH
+	, _scriptController(NULL), _scriptTarget(NULL)
+#endif
 {
     GP_ASSERT(__gameInstance == NULL);
 
@@ -75,8 +81,10 @@ Game::Game()
 
 Game::~Game()
 {
+#ifndef HSPDISH
     SAFE_DELETE(_scriptTarget);
 	SAFE_DELETE(_scriptController);
+#endif
 
     // Do not call any virtual functions from the destructor.
     // Finalization is done from outside this class.
@@ -167,8 +175,10 @@ bool Game::startup()
     _animationController = new AnimationController();
     _animationController->initialize();
 
+#ifndef HSPDISH
     _audioController = new AudioController();
     _audioController->initialize();
+#endif
 
     _physicsController = new PhysicsController();
     _physicsController->initialize();
@@ -176,12 +186,15 @@ bool Game::startup()
     _aiController = new AIController();
     _aiController->initialize();
 
+#ifndef HSPDISH
     _scriptController = new ScriptController();
     _scriptController->initialize();
+#endif
 
     // Load any gamepads, ui or physical.
     loadGamepads();
 
+#ifndef HSPDISH
     // Set script handler
     if (_properties)
     {
@@ -221,6 +234,7 @@ bool Game::startup()
             }
         }
     }
+#endif
 
     _state = RUNNING;
 
@@ -233,7 +247,9 @@ void Game::shutdown()
     if (_state != UNINITIALIZED)
     {
         GP_ASSERT(_animationController);
+#ifndef HSPDISH
         GP_ASSERT(_audioController);
+#endif
         GP_ASSERT(_physicsController);
         GP_ASSERT(_aiController);
 
@@ -242,15 +258,19 @@ void Game::shutdown()
 		// Call user finalize
         finalize();
 
+#ifndef HSPDISH
         // Call script finalize
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, finalize));
 
         // Destroy script target so no more script events are fired
         SAFE_DELETE(_scriptTarget);
+#endif
 
 		// Shutdown scripting system first so that any objects allocated in script are released before our subsystems are released
+#ifndef HSPDISH
 		_scriptController->finalize();
+#endif
 
         unsigned int gamepadCount = Gamepad::getGamepadCount();
         for (unsigned int i = 0; i < gamepadCount; i++)
@@ -262,8 +282,10 @@ void Game::shutdown()
         _animationController->finalize();
         SAFE_DELETE(_animationController);
 
+#ifndef HSPDISH
         _audioController->finalize();
         SAFE_DELETE(_audioController);
+#endif
 
         _physicsController->finalize();
         SAFE_DELETE(_physicsController);
@@ -293,13 +315,17 @@ void Game::pause()
     if (_state == RUNNING)
     {
         GP_ASSERT(_animationController);
+#ifndef HSPDISH
         GP_ASSERT(_audioController);
+#endif
         GP_ASSERT(_physicsController);
         GP_ASSERT(_aiController);
         _state = PAUSED;
         _pausedTimeLast = Platform::getAbsoluteTime();
         _animationController->pause();
+#ifndef HSPDISH
         _audioController->pause();
+#endif
         _physicsController->pause();
         _aiController->pause();
     }
@@ -316,13 +342,17 @@ void Game::resume()
         if (_pausedCount == 0)
         {
             GP_ASSERT(_animationController);
+#ifndef HSPDISH
             GP_ASSERT(_audioController);
+#endif
             GP_ASSERT(_physicsController);
             GP_ASSERT(_aiController);
             _state = RUNNING;
             _pausedTimeTotal += Platform::getAbsoluteTime() - _pausedTimeLast;
             _animationController->resume();
+#ifndef HSPDISH
             _audioController->resume();
+#endif
             _physicsController->resume();
             _aiController->resume();
         }
@@ -360,8 +390,10 @@ void Game::frame()
     {
         // Perform lazy first time initialization
         initialize();
+#ifndef HSPDISH
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, initialize));
+#endif
         _initialized = true;
 
         // Fire first game resize event
@@ -377,7 +409,9 @@ void Game::frame()
     if (_state == Game::RUNNING)
     {
         GP_ASSERT(_animationController);
+#ifndef HSPDISH
         GP_ASSERT(_audioController);
+#endif
         GP_ASSERT(_physicsController);
         GP_ASSERT(_aiController);
 
@@ -404,18 +438,24 @@ void Game::frame()
         Form::updateInternal(elapsedTime);
 
         // Run script update.
+#ifndef HSPDISH
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, update), elapsedTime);
+#endif
 
+#ifndef HSPDISH
         // Audio Rendering.
         _audioController->update(elapsedTime);
+#endif
 
         // Graphics Rendering.
         render(elapsedTime);
 
+#ifndef HSPDISH
         // Run script render.
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, render), elapsedTime);
+#endif
 
         // Update FPS.
         ++_frameCount;
@@ -437,29 +477,37 @@ void Game::frame()
         // Update forms.
         Form::updateInternal(0);
 
+#ifndef HSPDISH
         // Script update.
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, update), 0);
+#endif
 
         // Graphics Rendering.
         render(0);
 
+#ifndef HSPDISH
         // Script render.
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, render), 0);
+#endif
     }
 }
 
 void Game::renderOnce(const char* function)
 {
+#ifndef HSPDISH
     _scriptController->executeFunction<void>(function, NULL);
+#endif
     Platform::swapBuffers();
 }
 
 void Game::updateOnce()
 {
     GP_ASSERT(_animationController);
+#ifndef HSPDISH
     GP_ASSERT(_audioController);
+#endif
     GP_ASSERT(_physicsController);
     GP_ASSERT(_aiController);
 
@@ -473,9 +521,11 @@ void Game::updateOnce()
     _animationController->update(elapsedTime);
     _physicsController->update(elapsedTime);
     _aiController->update(elapsedTime);
+#ifndef HSPDISH
     _audioController->update(elapsedTime);
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, update), elapsedTime);
+#endif
 }
 
 void Game::setViewport(const Rectangle& viewport)
@@ -636,9 +686,10 @@ bool Game::mouseEventInternal(Mouse::MouseEvent evt, int x, int y, int wheelDelt
     if (mouseEvent(evt, x, y, wheelDelta))
         return true;
 
+#ifndef HSPDISH
     if (_scriptTarget)
         return _scriptTarget->fireScriptEvent<bool>(GP_GET_SCRIPT_EVENT(GameScriptTarget, mouseEvent), evt, x, y, wheelDelta);
-
+#endif
     return false;
 }
 
@@ -650,58 +701,74 @@ void Game::resizeEventInternal(unsigned int width, unsigned int height)
         _width = width;
         _height = height;
         resizeEvent(width, height);
+#ifndef HSPDISH
         if (_scriptTarget)
             _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, resizeEvent), width, height);
+#endif
     }
 }
 
 void Game::gestureSwipeEventInternal(int x, int y, int direction)
 {
     gestureSwipeEvent(x, y, direction);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gestureSwipeEvent), x, y, direction);
+#endif
 }
 
 void Game::gesturePinchEventInternal(int x, int y, float scale)
 {
     gesturePinchEvent(x, y, scale);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gesturePinchEvent), x, y, scale);
+#endif
 }
 
 void Game::gestureTapEventInternal(int x, int y)
 {
     gestureTapEvent(x, y);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gestureTapEvent), x, y);
+#endif
 }
 
 void Game::gestureLongTapEventInternal(int x, int y, float duration)
 {
     gestureLongTapEvent(x, y, duration);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gestureLongTapevent), x, y, duration);
+#endif
 }
 
 void Game::gestureDragEventInternal(int x, int y)
 {
     gestureDragEvent(x, y);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gestureDragEvent), x, y);
+#endif
 }
 
 void Game::gestureDropEventInternal(int x, int y)
 {
     gestureDropEvent(x, y);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gestureDropEvent), x, y);
+#endif
 }
 
 void Game::gamepadEventInternal(Gamepad::GamepadEvent evt, Gamepad* gamepad)
 {
     gamepadEvent(evt, gamepad);
+#ifndef HSPDISH
     if (_scriptTarget)
         _scriptTarget->fireScriptEvent<void>(GP_GET_SCRIPT_EVENT(GameScriptTarget, gamepadEvent), evt, gamepad);
+#endif
 }
 
 void Game::getArguments(int* argc, char*** argv) const
@@ -718,7 +785,9 @@ void Game::schedule(float timeOffset, TimeListener* timeListener, void* cookie)
 
 void Game::schedule(float timeOffset, const char* function)
 {
+#ifndef HSPDISH
     getScriptController()->schedule(timeOffset, function);
+#endif
 }
 
 void Game::clearSchedule()

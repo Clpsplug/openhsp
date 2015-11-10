@@ -20,6 +20,9 @@ CFLAGS_GP = $(CFLAGS_CORE) $(CFLAGS_DEBUG) \
 		  -D_LARGEFILE64_SOURCE \
 		  -DHSPDISHGP -I emscripten/extlib/include -I extlib/src -I gameplay/src -I win32gp
 
+CXXFLAGS_GP = $(CFLAGS_GP) \
+		  -std=c++11 \
+
 CFLAGS_EXTLIB = $(CFLAGS_CORE) $(CFLAGS_DEBUG) \
 		  -s FULL_ES2=1 -O3 \
 		  -D_LARGEFILE64_SOURCE \
@@ -122,9 +125,11 @@ OBJS_GAMEPLAY = \
 	gameplay/src/CheckBox.gp.bc \
 	gameplay/src/Container.gp.bc \
 	gameplay/src/Control.gp.bc \
+	gameplay/src/ControlFactory.gp.bc \
 	gameplay/src/Curve.gp.bc \
 	gameplay/src/DebugNew.gp.bc \
 	gameplay/src/DepthStencilTarget.gp.bc \
+	gameplay/src/Drawable.gp.bc \
 	gameplay/src/Effect.gp.bc \
 	gameplay/src/FileSystem.gp.bc \
 	gameplay/src/FlowLayout.gp.bc \
@@ -134,15 +139,11 @@ OBJS_GAMEPLAY = \
 	gameplay/src/Frustum.gp.bc \
 	gameplay/src/Game.gp.bc \
 	gameplay/src/Gamepad.gp.bc \
-	gameplay/src/gameplay-main-android.gp.bc \
-	gameplay/src/gameplay-main-blackberry.gp.bc \
-	gameplay/src/gameplay-main-linux.gp.bc \
-	gameplay/src/gameplay-main-windows.gp.bc \
 	gameplay/src/HeightField.gp.bc \
 	gameplay/src/Image.gp.bc \
 	gameplay/src/ImageControl.gp.bc \
 	gameplay/src/Joint.gp.bc \
-	gameplay/src/Joystick.gp.bc \
+	gameplay/src/JoystickControl.gp.bc \
 	gameplay/src/Label.gp.bc \
 	gameplay/src/Layout.gp.bc \
 	gameplay/src/Light.gp.bc \
@@ -175,11 +176,7 @@ OBJS_GAMEPLAY = \
 	gameplay/src/PhysicsVehicleWheel.gp.bc \
 	gameplay/src/Plane.gp.bc \
 	gameplay/src/Platform.gp.bc \
-	gameplay/src/PlatformAndroid.gp.bc \
-	gameplay/src/PlatformBlackBerry.gp.bc \
 	gameplay/src/PlatformEmscripten.gp.bc \
-	gameplay/src/PlatformLinux.gp.bc \
-	gameplay/src/PlatformWindows.gp.bc \
 	gameplay/src/Properties.gp.bc \
 	gameplay/src/Quaternion.gp.bc \
 	gameplay/src/RadioButton.gp.bc \
@@ -418,7 +415,7 @@ emscripten/libLinearMath.a: $(OBJS_LINEAR_MATH)
 	echo $(CC) $(CFLAGS) -c $< -o $*.bc
 	$(CC) $(CFLAGS) -c $< -o $*.bc
 %.bc: %.cpp
-	echo $(CC) $(CFLAGS) -c $< -o $*.bc
+	echo $(CXX) $(CFLAGS) -c $< -o $*.bc
 	$(CXX) $(CFLAGS) -c $< -o $*.bc
 
 
@@ -426,8 +423,8 @@ emscripten/libLinearMath.a: $(OBJS_LINEAR_MATH)
 	echo $(CC) $(CFLAGS_GP) -c $< -o $*.gp.bc
 	$(CC) $(CFLAGS_GP) -c $< -o $*.gp.bc
 %.gp.bc: %.cpp
-	echo $(CC) $(CFLAGS_GP) -c $< -o $*.gp.bc
-	$(CXX) $(CFLAGS_GP) -c $< -o $*.gp.bc
+	echo $(CXX) $(CXXFLAGS_GP) -c $< -o $*.gp.bc
+	$(CXX) $(CXXFLAGS_GP) -c $< -o $*.gp.bc
 
 clean:
 	rm -f $(OBJS) $(OBJS_GP) $(OBJS_GAMEPLAY) $(TARGETS)

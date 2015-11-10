@@ -197,6 +197,7 @@ unsigned int Scene::findNodes(const char* id, std::vector<Node*>& nodes, bool re
 
 void Scene::visitNode(Node* node, const char* visitMethod)
 {
+#ifndef HSPDISH
     ScriptController* sc = Game::getInstance()->getScriptController();
 
     // Invoke the visit method for this node.
@@ -218,6 +219,7 @@ void Scene::visitNode(Node* node, const char* visitMethod)
     {
         visitNode(child, visitMethod);
     }
+#endif
 }
 
 Node* Scene::addNode(const char* id)

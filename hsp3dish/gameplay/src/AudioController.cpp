@@ -1,12 +1,15 @@
 #include "Base.h"
 #include "AudioController.h"
+#ifndef HSPDISH
 #include "AudioListener.h"
 #include "AudioBuffer.h"
 #include "AudioSource.h"
+#endif
 
 namespace gameplay
 {
 
+#ifndef HSPDISH
 AudioController::AudioController() 
 : _alcDevice(NULL), _alcContext(NULL), _pausingSource(NULL), _streamingThreadActive(true)
 {
@@ -174,4 +177,5 @@ void AudioController::streamingThreadProc(void* arg)
     }
 }
 
+#endif
 }

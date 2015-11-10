@@ -194,17 +194,28 @@ extern int strcmpnocase(const char* s1, const char* s2);
 #elif __APPLE__
     #include <OpenAL/al.h>
     #include <OpenAL/alc.h>
+#elif EMSCRIPTEN
+	#include <AL/al.h>
+	#include <AL/alc.h>
 #endif
 
 // Compressed Media
+#ifndef HSPDISH
 #include <vorbis/vorbisfile.h>
+#endif
 
 // Image
+#ifndef HSPDISH
 #include <png.h>
+#else
+#include <libpng/png.h>
+#endif
 
 // Scripting
 using std::va_list;
+#ifndef HSPDISH
 #include <lua/lua.hpp>
+#endif
 
 #define WINDOW_VSYNC        1
 
@@ -222,10 +233,22 @@ using std::va_list;
     #define OPENGL_ES
     #define GP_USE_VAO
 #elif WIN32
+#ifdef GP_USE_ANGLE
+    #include <GLES2/gl2.h>
+    #include <GLES2/gl2ext.h>
+    extern PFNGLBINDVERTEXARRAYOESPROC glBindVertexArray;
+    extern PFNGLDELETEVERTEXARRAYSOESPROC glDeleteVertexArrays;
+    extern PFNGLGENVERTEXARRAYSOESPROC glGenVertexArrays;
+    extern PFNGLISVERTEXARRAYOESPROC glIsVertexArray;
+    #define GL_DEPTH24_STENCIL8 GL_DEPTH24_STENCIL8_OES
+    #define glClearDepth glClearDepthf
+    #define OPENGL_ES
+#else
         #define WIN32_LEAN_AND_MEAN
         #define GLEW_STATIC
         #include <GL/glew.h>
         #define GP_USE_VAO
+#endif
 #elif __linux__
         #define GLEW_STATIC
         #include <GL/glew.h>
@@ -254,6 +277,10 @@ using std::va_list;
     #else
         #error "Unsupported Apple Device"
     #endif
+#elif EMSCRIPTEN
+    #define GLEW_STATIC
+    #include <GL/glew.h>
+//    #define USE_VAO //for IE11
 #endif
 
 // Graphics (GLSL)
@@ -320,6 +347,7 @@ extern GLenum __gl_error_code;
  * The AL_LAST_ERROR macro can be used afterwards to check whether a AL error was
  * encountered executing the specified code.
  */
+
 #define AL_CHECK( al_code ) do \
     { \
         while (alGetError() != AL_NO_ERROR) ; \

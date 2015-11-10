@@ -124,6 +124,7 @@ void ScriptTarget::registerEvents(EventRegistry* registry)
 
 Script* ScriptTarget::addScript(const char* path)
 {
+#ifndef HSPDISH
     ScriptController* sc = Game::getInstance()->getScriptController();
 
     // Load the script
@@ -174,10 +175,14 @@ Script* ScriptTarget::addScript(const char* path)
     }
 
     return script;
+#else
+	return NULL;
+#endif
 }
 
 bool ScriptTarget::removeScript(const char* path)
 {
+#ifndef HSPDISH
     GP_ASSERT(path);
 
     ScriptEntry* se = _scripts;
@@ -190,6 +195,7 @@ bool ScriptTarget::removeScript(const char* path)
         }
         se = se->next;
     }
+#endif
 
     return false;
 }
@@ -235,6 +241,7 @@ void ScriptTarget::removeScript(ScriptEntry* se)
 
 void ScriptTarget::addScriptCallback(const Event* event, const char* function)
 {
+#ifndef HSPDISH
     GP_ASSERT(event);
     GP_ASSERT(function);
 
@@ -302,10 +309,12 @@ void ScriptTarget::addScriptCallback(const Event* event, const char* function)
             _scriptCallbacks = new std::map<const Event*, std::vector<CallbackFunction>>();
         (*_scriptCallbacks)[event].push_back(CallbackFunction(script, func.c_str()));
     }
+#endif
 }
 
 void ScriptTarget::removeScriptCallback(const Event* event, const char* function)
 {
+#ifndef HSPDISH
     // Parse the script name (if it exists) and function out
     std::string scriptPath, func;
     splitURL(function, &scriptPath, &func);
@@ -367,6 +376,7 @@ void ScriptTarget::removeScriptCallback(const Event* event, const char* function
     {
         removeScript(scriptEntry);
     }
+#endif
 }
 
 void ScriptTarget::clearScripts()
@@ -379,8 +389,12 @@ void ScriptTarget::clearScripts()
 
 bool ScriptTarget::hasScriptListener(const char* eventName) const
 {
+#ifndef HSPDISH
     const Event* event = getScriptEvent(eventName);
     return event ? hasScriptListener(event) : false;
+#else
+	return false;
+#endif
 }
 
 const ScriptTarget::Event* ScriptTarget::getScriptEvent(const char* eventName) const
@@ -418,6 +432,7 @@ bool ScriptTarget::hasScriptListener(const Event* event) const
 
 template<> void ScriptTarget::fireScriptEvent<void>(const Event* event, ...)
 {
+#ifndef HSPDISH
     GP_ASSERT(event);
 
     if (!_scriptCallbacks)
@@ -440,10 +455,12 @@ template<> void ScriptTarget::fireScriptEvent<void>(const Event* event, ...)
     }
 
     va_end(list);
+#endif
 }
 
 template<> bool ScriptTarget::fireScriptEvent<bool>(const Event* event, ...)
 {
+#ifndef HSPDISH
     GP_ASSERT(event);
 
     if (!_scriptCallbacks)
@@ -470,7 +487,7 @@ template<> bool ScriptTarget::fireScriptEvent<bool>(const Event* event, ...)
     }
 
     va_end(list);
-
+#endif
     return false;
 }
 

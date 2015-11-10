@@ -289,6 +289,7 @@ void gamehsp::resetScreen( int opt )
 	// gpobj作成
 	_maxobj = GetSysReq( SYSREQ_MAXOBJ );
 	_gpobj = new gpobj[ _maxobj ];
+	for(int i=0;i<_maxobj;i++) { _gpobj[i].addRef(); }
 	setObjectPool( 0, -1 );
 
 	// gpmat作成
@@ -313,6 +314,7 @@ void gamehsp::resetScreen( int opt )
 //	_camera->translate(0, 0, 100);
 //	SAFE_RELEASE(camera);
 
+#if 0
 	// シーンライト作成
 	_scene->setLightColor( 1.0f, 1.0f, 1.0f );
 
@@ -320,6 +322,7 @@ void gamehsp::resetScreen( int opt )
 	ldir.set( -0.5f, 0.0f, -0.3f );
 	_scene->setLightDirection( ldir );
 	_scene->setAmbientColor( 0.25f, 0.25f, 0.25f );
+#endif
 
 	// ライト作成
 	_deflight = makeNewLgt( -1, GPLGT_OPT_NORMAL );
@@ -910,9 +913,9 @@ int gamehsp::getObjectVector( int objid, int moc, Vector4 *prm )
 
 void gamehsp::drawNode( Node *node )
 {
-	Model* model = node->getModel(); 
-	if (model) {
-		model->draw();
+	Drawable* drawable = node->getDrawable(); 
+	if (drawable) {
+		drawable->draw();
 	}
 }
 
@@ -955,7 +958,8 @@ bool gamehsp::updateNodeMaterial( Node* node, Material *material )
 		updateNodeMaterial( sub_node, material );
 	}
 
-	Model* model = node->getModel(); 
+	Drawable* drawable = node->getDrawable();
+	Model* model = dynamic_cast<Model*>(drawable);
     if (model)
     {
 		model->setMaterial( material );
@@ -967,8 +971,9 @@ bool gamehsp::updateNodeMaterial( Node* node, Material *material )
 bool gamehsp::drawScene(Node* node)
 {
     // If the node visited contains a model, draw it
-	gpobj *obj = (gpobj *)node->getUserPointer();
-    Model* model = node->getModel(); 
+	gpobj *obj = (gpobj *)node->getUserObject();
+	Drawable* drawable = node->getDrawable();
+	Model* model = dynamic_cast<Model*>(drawable);
 	if ( obj ) {
 		if ( obj->isVisible( _scenedraw_lateflag ) == false ) return false;
 
@@ -1063,7 +1068,8 @@ int gamehsp::makeNullNode( void )
 
 	node = Node::create();
 	obj->_node = node;
-	node->setUserPointer( obj, NULL );
+	node->setUserObject( obj );
+	obj->addRef();
 
 	if ( _curscene >= 0 ) {
 		_scene->addNode( obj->_node );
@@ -1303,7 +1309,8 @@ int gamehsp::makeModelNode( char *fname, char *idname )
 		for(i=0;i<bundle->getObjectCount();i++) {
 			node = bundle->loadNode( bundle->getObjectId(i) );
 			if ( node ) {
-				Model* model = node->getModel();
+				Drawable* drawable = node->getDrawable();
+				Model* model = dynamic_cast<Model*>(drawable);
 			    if (model) {
 					model->setMaterial( boxMaterial );
 			    }
@@ -1346,7 +1353,8 @@ int gamehsp::makeModelNode( char *fname, char *idname )
     SAFE_RELEASE(boxMaterial);
 
 	//nodetemp = mCubeNode;
-	rootNode->setUserPointer( obj, NULL );
+	rootNode->setUserObject( obj );
+	obj->addRef();
 	obj->_node = rootNode;
 
 	// 初期化パラメーターを保存
@@ -1369,8 +1377,9 @@ void gamehsp::makeNewModel( gpobj *obj, Mesh *mesh, Material *material )
 		node = Node::create();
 		obj->_node = node;
 	}
-	node->setModel(model);
-	node->setUserPointer( obj, NULL );
+	node->setDrawable(model);
+	node->setUserObject( obj );
+	obj->addRef();
 	obj->_model = model;
 	obj->updateParameter( material );
 	SAFE_RELEASE(model);
@@ -1530,17 +1539,18 @@ int gamehsp::makeCloneNode( int objid )
 	newobj->_shape = obj->_shape;
 	newobj->_sizevec = obj->_sizevec;
 
-	node->setUserPointer( NULL, NULL );
+	node->setUserObject( NULL );
 
 	newobj->_node = node->clone();
 
-	newobj->_node->setUserPointer( newobj, NULL );
+	newobj->_node->setUserObject( newobj );
+	newobj->addRef();
 
 	if ( _curscene >= 0 ) {
 		_scene->addNode( newobj->_node );
 	}
 
-	node->setUserPointer( obj, NULL );
+	node->setUserObject( obj );
 
 	return newobj->_id;
 }
@@ -2150,7 +2160,7 @@ Material* gamehsp::make2DMaterialForMesh( void )
 	Material* mesh_material = Material::create( SPRITECOL_VSH, SPRITECOL_FSH, NULL );
 	if ( mesh_material == NULL ) {
         GP_ERROR("2D initalize failed.");
-        return false;
+        return NULL;
 	}
     mesh_material->getParameter("u_projectionMatrix")->setValue(_projectionMatrix2D);
 	state = mesh_material->getStateBlock();

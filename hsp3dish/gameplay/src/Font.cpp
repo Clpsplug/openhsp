@@ -242,7 +242,7 @@ Font* Font::findClosestSize(int size)
     return closest;
 }
 
-void Font::drawText(const char* text, int x, int y, const Vector4& color, unsigned int size, bool rightToLeft)
+int Font::drawText(const char* text, int x, int y, const Vector4& color, unsigned int size, bool rightToLeft)
 {
     GP_ASSERT(_size);
     GP_ASSERT(text);
@@ -257,8 +257,7 @@ void Font::drawText(const char* text, int x, int y, const Vector4& color, unsign
         Font* f = findClosestSize(size);
         if (f != this)
         {
-            f->drawText(text, x, y, color, size, rightToLeft);
-            return;
+            return f->drawText(text, x, y, color, size, rightToLeft);
         }
     }
 
@@ -385,6 +384,8 @@ void Font::drawText(const char* text, int x, int y, const Vector4& color, unsign
             done = true;
         }
     }
+
+	return xPos - x;
 }
 
 void Font::drawText(const char* text, int x, int y, float red, float green, float blue, float alpha, unsigned int size, bool rightToLeft)

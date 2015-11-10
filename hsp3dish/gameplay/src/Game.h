@@ -229,6 +229,7 @@ public:
      */
     void clear(ClearFlags flags, float red, float green, float blue, float alpha, float clearDepth, int clearStencil);
 
+#ifndef HSPDISH
     /**
      * Gets the audio controller for managing control of audio
      * associated with the game.
@@ -236,6 +237,7 @@ public:
      * @return The audio controller for this game.
      */
     inline AudioController* getAudioController() const;
+#endif
 
     /**
      * Gets the animation controller for managing control of animations
@@ -759,12 +761,16 @@ private:
     int _clearStencil;                          // The clear stencil value last used for clearing the stencil buffer.
     Properties* _properties;                    // Game configuration properties object.
     AnimationController* _animationController;  // Controls the scheduling and running of animations.
+#ifndef HSPDISH
     AudioController* _audioController;          // Controls audio sources that are playing in the game.
+#endif
     PhysicsController* _physicsController;      // Controls the simulation of a physics scene and entities.
     AIController* _aiController;                // Controls AI simulation.
     AudioListener* _audioListener;              // The audio listener in 3D space.
     std::priority_queue<TimeEvent, std::vector<TimeEvent>, std::less<TimeEvent> >* _timeEvents;     // Contains the scheduled time events.
+#ifndef HSPDISH
     ScriptController* _scriptController;            // Controls the scripting engine.
+#endif
     ScriptTarget* _scriptTarget;                // Script target for the game
 
     // Note: Do not add STL object member variables on the stack; this will cause false memory leaks to be reported.
